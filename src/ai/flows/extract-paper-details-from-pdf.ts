@@ -25,6 +25,7 @@ const ExtractPaperDetailsFromPdfOutputSchema = z.object({
     year: z.number().describe('The publication year of the paper.'),
     journal: z.string().describe('The journal or conference where the paper was published.'),
     abstract: z.string().describe('The abstract of the paper.'),
+    doi: z.string().optional().describe('The DOI of the paper, if it is present in the document.'),
 });
 export type ExtractPaperDetailsFromPdfOutput = z.infer<typeof ExtractPaperDetailsFromPdfOutputSchema>;
 
@@ -45,6 +46,7 @@ Examine the provided PDF and extract the following information:
 - Publication year
 - Journal or conference name
 - The full abstract
+- The DOI, if it is present in the document.
 
 PDF: {{media url=pdfDataUri}}`
 });

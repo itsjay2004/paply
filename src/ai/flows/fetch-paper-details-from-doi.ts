@@ -46,6 +46,7 @@ const FetchPaperDetailsFromDoiOutputSchema = z.object({
     year: z.number(),
     journal: z.string(),
     abstract: z.string(),
+    doi: z.string().optional(),
 });
 export type FetchPaperDetailsFromDoiOutput = z.infer<typeof FetchPaperDetailsFromDoiOutputSchema>;
 
@@ -78,6 +79,7 @@ const fetchPaperDetailsFromDoiFlow = ai.defineFlow(
             year,
             journal,
             abstract,
+            doi,
         };
     }
 );

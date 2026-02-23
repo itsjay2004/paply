@@ -23,6 +23,8 @@ export const papers: Paper[] = [
     pdfUrl: '/placeholder.pdf',
     tags: ['deep-learning', 'nlp', 'transformer'],
     collectionIds: ['1'],
+    doi: '10.48550/arXiv.1706.03762',
+    publisher: 'Cornell University',
   },
   {
     id: '2',
@@ -35,6 +37,8 @@ export const papers: Paper[] = [
     pdfUrl: '/placeholder.pdf',
     tags: ['quantum-computing', 'cryptography', 'algorithms'],
     collectionIds: ['2'],
+    doi: '10.1109/SFCS.1994.365700',
+    publisher: 'IEEE',
   },
   {
     id: '3',
@@ -47,5 +51,7 @@ export const papers: Paper[] = [
     pdfUrl: '/placeholder.pdf',
     tags: ['gan', 'generative-models', 'deep-learning'],
     collectionIds: ['1'],
+    doi: '10.48550/arXiv.1406.2661',
+    publisher: 'Cornell University',
   },
 ];

@@ -89,6 +89,7 @@ export function ImportDialog({ open, onOpenChange, onPaperImported }: ImportDial
                 pdfUrl: localPdfUrl ?? '/placeholder.pdf',
                 tags: [],
                 collectionIds: [],
+                doi: (paperDetails as any).doi,
             };
             onPaperImported(newPaper);
             toast({ title: 'Success', description: 'Paper imported successfully.' });

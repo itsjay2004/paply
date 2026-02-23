@@ -9,6 +9,13 @@ export type Paper = {
   pdfUrl: string;
   tags: string[];
   collectionIds: string[];
+  publisher?: string;
+  typeOfWork?: string;
+  language?: string;
+  city?: string;
+  country?: string;
+  url?: string;
+  doi?: string;
 };
 
 export type Collection = {

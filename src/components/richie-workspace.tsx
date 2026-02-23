@@ -32,6 +32,13 @@ export function RichieWorkspace({ papers: initialPapers, collections }: { papers
     setSummaries(prev => ({ ...prev, [paperId]: summary }));
     setPapers(prevPapers => prevPapers.map(p => p.id === paperId ? {...p, summary} : p));
   };
+
+  const handlePaperUpdate = (updatedPaper: Paper) => {
+    setPapers(prevPapers => prevPapers.map(p => p.id === updatedPaper.id ? updatedPaper : p));
+    if (selectedPaper && selectedPaper.id === updatedPaper.id) {
+      setSelectedPaper(updatedPaper);
+    }
+  };
   
   const handlePaperImport = (newPaper: Paper) => {
     const newPapers = [newPaper, ...papers];
@@ -70,6 +77,7 @@ export function RichieWorkspace({ papers: initialPapers, collections }: { papers
               <PaperDetailsPane 
                 paper={selectedPaper}
                 onSummaryUpdate={handleSummaryUpdate}
+                onPaperUpdate={handlePaperUpdate}
                 onClose={() => setSelectedPaper(null)}
               />
             )}
