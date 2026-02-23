@@ -2,23 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import type { Paper, Collection } from '@/lib/types';
-import { Sidebar, SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { Sidebar, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { LeftSidebarContent } from '@/components/left-sidebar-content';
 import { PaperList } from '@/components/paper-list';
 import { PaperDetailsPane } from '@/components/paper-details-pane';
 import { UserNav } from '@/components/user-nav';
 import { Button } from '@/components/ui/button';
-import { BookOpenCheck, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
+import { ImportDialog } from './import-dialog';
 
-export function RichieWorkspace({ papers, collections }: { papers: Paper[]; collections: Collection[] }) {
-  const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
+export function RichieWorkspace({ papers: initialPapers, collections }: { papers: Paper[]; collections: Collection[] }) {
+  const [papers, setPapers] = useState<Paper[]>(initialPapers);
+  const [selectedPaper, setSelectedPaper] = useState<Paper | null>(initialPapers.length > 0 ? initialPapers[0] : null);
   const [summaries, setSummaries] = useState<Record<string, string[]>>({});
-
-  useEffect(() => {
-    if (papers.length > 0) {
-      setSelectedPaper(papers[0]);
-    }
-  }, [papers]);
+  const [isImportDialogOpen, setImportDialogOpen] = useState(false);
 
   useEffect(() => {
     const initialSummaries = papers.reduce((acc, paper) => {
@@ -32,8 +29,15 @@ export function RichieWorkspace({ papers, collections }: { papers: Paper[]; coll
 
   const handleSummaryUpdate = (paperId: string, summary: string[]) => {
     setSummaries(prev => ({ ...prev, [paperId]: summary }));
+    setPapers(prevPapers => prevPapers.map(p => p.id === paperId ? {...p, summary} : p));
   };
   
+  const handlePaperImport = (newPaper: Paper) => {
+    const newPapers = [newPaper, ...papers];
+    setPapers(newPapers);
+    setSelectedPaper(newPaper);
+  };
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-background">
@@ -47,7 +51,7 @@ export function RichieWorkspace({ papers, collections }: { papers: Paper[]; coll
               <h1 className="text-lg font-semibold tracking-tight">All Papers</h1>
             </div>
             <div className="flex items-center gap-4">
-              <Button size="sm" className="gap-2">
+              <Button size="sm" className="gap-2" onClick={() => setImportDialogOpen(true)}>
                 <PlusCircle />
                 Import
               </Button>
@@ -67,6 +71,11 @@ export function RichieWorkspace({ papers, collections }: { papers: Paper[]; coll
             />
           </main>
         </div>
+        <ImportDialog 
+          open={isImportDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          onPaperImported={handlePaperImport}
+        />
       </div>
     </SidebarProvider>
   );
