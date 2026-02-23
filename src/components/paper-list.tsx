@@ -12,7 +12,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { File, Search } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface PaperListProps {
@@ -47,9 +48,10 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper }: P
         <Table>
           <TableHeader className="sticky top-0 bg-muted/20 z-10">
             <TableRow>
-              <TableHead className="w-[50%]">Title</TableHead>
+              <TableHead className="w-24">Year</TableHead>
               <TableHead>Authors</TableHead>
-              <TableHead className="text-right">Year</TableHead>
+              <TableHead className="w-[45%]">Title</TableHead>
+              <TableHead className="text-right w-16">File</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -61,6 +63,8 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper }: P
                 })}
                 onClick={() => onSelectPaper(paper)}
               >
+                <TableCell className="text-xs">{paper.year}</TableCell>
+                <TableCell className="text-xs">{paper.authors.slice(0, 2).join(', ')}{paper.authors.length > 2 ? ' et al.' : ''}</TableCell>
                 <TableCell>
                   <div className="font-medium">{paper.title}</div>
                   <div className="text-xs text-muted-foreground">{paper.journal}</div>
@@ -72,8 +76,13 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper }: P
                      </ul>
                   )}
                 </TableCell>
-                <TableCell className="text-xs">{paper.authors.slice(0, 2).join(', ')}{paper.authors.length > 2 ? ' et al.' : ''}</TableCell>
-                <TableCell className="text-right text-xs">{paper.year}</TableCell>
+                <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" asChild>
+                        <a href={paper.pdfUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                            <File className="w-4 h-4" />
+                        </a>
+                    </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
