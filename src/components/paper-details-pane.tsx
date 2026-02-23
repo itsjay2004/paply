@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, FileText, Loader2, Wand2 } from 'lucide-react';
+import { Sparkles, Loader2, Wand2, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getSummary, getExplanation } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -15,11 +15,12 @@ import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 interface PaperDetailsPaneProps {
-  paper: Paper | null;
+  paper: Paper;
   onSummaryUpdate: (paperId: string, summary: string[]) => void;
+  onClose: () => void;
 }
 
-export function PaperDetailsPane({ paper, onSummaryUpdate }: PaperDetailsPaneProps) {
+export function PaperDetailsPane({ paper, onSummaryUpdate, onClose }: PaperDetailsPaneProps) {
   const { toast } = useToast();
   const [isSummarizing, startSummaryTransition] = useTransition();
   const [isExplaining, startExplainTransition] = useTransition();
@@ -64,24 +65,16 @@ export function PaperDetailsPane({ paper, onSummaryUpdate }: PaperDetailsPanePro
     });
   }
 
-  if (!paper) {
-    return (
-      <div className="flex items-center justify-center h-full bg-background p-4">
-        <div className="text-center">
-          <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-medium">No Paper Selected</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Select a paper from the list to see its details.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <ScrollArea className="h-full bg-background">
+    <ScrollArea className="h-full bg-background border-l relative">
+      <Button variant="ghost" size="icon" className="absolute top-4 right-4 z-10" onClick={onClose}>
+        <X className="h-5 w-5" />
+        <span className="sr-only">Close</span>
+      </Button>
       <div className="p-4 lg:p-6 space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="font-headline">{paper.title}</CardTitle>
+            <CardTitle className="font-headline pr-8">{paper.title}</CardTitle>
             <CardDescription>
               {paper.authors.join(', ')} ({paper.year})
               <br/>

@@ -10,10 +10,11 @@ import { UserNav } from '@/components/user-nav';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { ImportDialog } from './import-dialog';
+import { cn } from '@/lib/utils';
 
 export function RichieWorkspace({ papers: initialPapers, collections }: { papers: Paper[]; collections: Collection[] }) {
   const [papers, setPapers] = useState<Paper[]>(initialPapers);
-  const [selectedPaper, setSelectedPaper] = useState<Paper | null>(initialPapers.length > 0 ? initialPapers[0] : null);
+  const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [summaries, setSummaries] = useState<Record<string, string[]>>({});
   const [isImportDialogOpen, setImportDialogOpen] = useState(false);
 
@@ -58,17 +59,20 @@ export function RichieWorkspace({ papers: initialPapers, collections }: { papers
               <UserNav />
             </div>
           </header>
-          <main className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[55%_45%] xl:grid-cols-[60%_40%] 2xl:grid-cols-[65%_35%] overflow-hidden">
+          <main className={cn("flex-1 grid overflow-hidden", selectedPaper ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-[55%_45%] xl:grid-cols-[60%_40%] 2xl:grid-cols-[65%_35%]" : "grid-cols-1")}>
             <PaperList
               papers={papers}
               summaries={summaries}
               selectedPaper={selectedPaper}
               onSelectPaper={setSelectedPaper}
             />
-            <PaperDetailsPane 
-              paper={selectedPaper}
-              onSummaryUpdate={handleSummaryUpdate}
-            />
+            {selectedPaper && (
+              <PaperDetailsPane 
+                paper={selectedPaper}
+                onSummaryUpdate={handleSummaryUpdate}
+                onClose={() => setSelectedPaper(null)}
+              />
+            )}
           </main>
         </div>
         <ImportDialog 
