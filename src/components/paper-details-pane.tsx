@@ -2,7 +2,6 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import type { Paper } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sparkles, Loader2, X, File as FileIcon, ChevronDown, ChevronUp } from 'lucide-react';
@@ -12,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from './ui/textarea';
+import { cn } from '@/lib/utils';
 
 interface PaperDetailsPaneProps {
   paper: Paper;
@@ -19,6 +19,16 @@ interface PaperDetailsPaneProps {
   onPaperUpdate: (paper: Paper) => void;
   onClose: () => void;
 }
+
+const DetailInput = ({ className, ...props }: React.ComponentProps<typeof Input>) => (
+  <Input
+    className={cn(
+      'h-auto border-0 bg-transparent p-0 text-right text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
+      className
+    )}
+    {...props}
+  />
+);
 
 export function PaperDetailsPane({ paper, onSummaryUpdate, onPaperUpdate, onClose }: PaperDetailsPaneProps) {
   const { toast } = useToast();
@@ -68,94 +78,83 @@ export function PaperDetailsPane({ paper, onSummaryUpdate, onPaperUpdate, onClos
         <X className="h-5 w-5" />
         <span className="sr-only">Close</span>
       </Button>
-      <div className="p-4 lg:p-6 space-y-6">
-        <Card>
-          <CardHeader>
+      <div className="p-6 space-y-8">
+        <div className="space-y-2">
             <Textarea
               value={editedPaper.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
-              className="text-2xl font-semibold leading-none tracking-tight h-auto p-0 border-0 shadow-none focus-visible:ring-0 resize-none"
+              className="text-2xl font-semibold leading-tight h-auto p-0 border-0 shadow-none focus-visible:ring-0 resize-none bg-transparent"
               placeholder="Paper Title"
-              rows={2}
             />
-            <div className="text-sm text-muted-foreground pt-2">
-              <Input
+            <Input
                 value={editedPaper.authors.join(', ')}
                 onChange={(e) => handleAuthorChange(e.target.value)}
-                className="h-auto p-0 border-0 shadow-none focus-visible:ring-0"
+                className="h-auto p-0 border-0 shadow-none focus-visible:ring-0 text-muted-foreground bg-transparent"
                 placeholder="Authors (comma-separated)"
-              />
-            </div>
-            <Button asChild variant="link" className="p-0 h-auto justify-start -ml-1 mt-2">
+            />
+            <Button asChild variant="link" className="p-0 h-auto justify-start -ml-1 mt-2 text-sm">
               <a href={paper.pdfUrl} target="_blank" rel="noopener noreferrer">
                 <FileIcon className="mr-2 h-4 w-4" />
                 Open PDF
               </a>
             </Button>
-          </CardHeader>
-        </Card>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="year">Year</Label>
-                <Input id="year" type="number" value={editedPaper.year} onChange={(e) => handleInputChange('year', e.target.value)} />
+        <div>
+          <h3 className="text-lg font-semibold mb-3">Details</h3>
+          <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm">
+                <Label className="text-muted-foreground">Year</Label>
+                <DetailInput id="year" type="number" value={editedPaper.year} onChange={(e) => handleInputChange('year', e.target.value)} />
               </div>
-              <div>
-                <Label htmlFor="journal">Journal</Label>
-                <Input id="journal" value={editedPaper.journal || ''} onChange={(e) => handleInputChange('journal', e.target.value)} />
+              <div className="flex justify-between items-center text-sm">
+                <Label className="text-muted-foreground">Journal</Label>
+                <DetailInput id="journal" value={editedPaper.journal || ''} onChange={(e) => handleInputChange('journal', e.target.value)} />
               </div>
-              <div>
-                <Label htmlFor="publisher">Publisher</Label>
-                <Input id="publisher" value={editedPaper.publisher || ''} onChange={(e) => handleInputChange('publisher', e.target.value)} />
+              <div className="flex justify-between items-center text-sm">
+                <Label className="text-muted-foreground">Publisher</Label>
+                <DetailInput id="publisher" value={editedPaper.publisher || ''} onChange={(e) => handleInputChange('publisher', e.target.value)} />
               </div>
-              <div>
-                <Label htmlFor="typeOfWork">Type of Work</Label>
-                <Input id="typeOfWork" value={editedPaper.typeOfWork || ''} onChange={(e) => handleInputChange('typeOfWork', e.target.value)} />
+              <div className="flex justify-between items-center text-sm">
+                <Label className="text-muted-foreground">Type of Work</Label>
+                <DetailInput id="typeOfWork" value={editedPaper.typeOfWork || ''} onChange={(e) => handleInputChange('typeOfWork', e.target.value)} />
               </div>
-              <div>
-                <Label htmlFor="language">Language</Label>
-                <Input id="language" value={editedPaper.language || ''} onChange={(e) => handleInputChange('language', e.target.value)} />
+              <div className="flex justify-between items-center text-sm">
+                <Label className="text-muted-foreground">Language</Label>
+                <DetailInput id="language" value={editedPaper.language || ''} onChange={(e) => handleInputChange('language', e.target.value)} />
               </div>
-              <div>
-                <Label htmlFor="city">City</Label>
-                <Input id="city" value={editedPaper.city || ''} onChange={(e) => handleInputChange('city', e.target.value)} />
+              <div className="flex justify-between items-center text-sm">
+                <Label className="text-muted-foreground">City</Label>
+                <DetailInput id="city" value={editedPaper.city || ''} onChange={(e) => handleInputChange('city', e.target.value)} />
               </div>
-              <div>
-                <Label htmlFor="country">Country</Label>
-                <Input id="country" value={editedPaper.country || ''} onChange={(e) => handleInputChange('country', e.target.value)} />
+              <div className="flex justify-between items-center text-sm">
+                <Label className="text-muted-foreground">Country</Label>
+                <DetailInput id="country" value={editedPaper.country || ''} onChange={(e) => handleInputChange('country', e.target.value)} />
               </div>
-              <div>
-                <Label htmlFor="url">URL</Label>
-                <Input id="url" value={editedPaper.url || ''} onChange={(e) => handleInputChange('url', e.target.value)} />
+              <div className="flex justify-between items-center text-sm">
+                <Label className="text-muted-foreground">URL</Label>
+                <DetailInput id="url" value={editedPaper.url || ''} onChange={(e) => handleInputChange('url', e.target.value)} />
               </div>
-              <div className="col-span-2">
-                <Label htmlFor="doi">DOI</Label>
-                <Input id="doi" value={editedPaper.doi || ''} onChange={(e) => handleInputChange('doi', e.target.value)} />
+              <div className="flex justify-between items-center text-sm">
+                <Label className="text-muted-foreground">DOI</Label>
+                <DetailInput id="doi" value={editedPaper.doi || ''} onChange={(e) => handleInputChange('doi', e.target.value)} />
               </div>
-              <div className="col-span-2">
-                <Label htmlFor="file">File</Label>
-                <Input id="file" value={editedPaper.pdfUrl || ''} onChange={(e) => handleInputChange('pdfUrl', e.target.value)} />
+              <div className="flex justify-between items-center text-sm">
+                <Label className="text-muted-foreground">File</Label>
+                <DetailInput id="file" value={editedPaper.pdfUrl || ''} onChange={(e) => handleInputChange('pdfUrl', e.target.value)} />
               </div>
             </div>
-          </CardContent>
-        </Card>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-lg">
-              <span>Abstract</span>
+        <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Abstract</h3>
               <Button size="sm" variant="outline" onClick={handleSummarize} disabled={isSummarizing}>
                 {isSummarizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                 Summarize
               </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </div>
+          <div className="space-y-4">
             {(isSummarizing && (!editedPaper.summary || editedPaper.summary.length === 0)) && (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-full" />
@@ -172,8 +171,8 @@ export function PaperDetailsPane({ paper, onSummaryUpdate, onPaperUpdate, onClos
               <Textarea
                 value={editedPaper.abstract}
                 onChange={(e) => handleInputChange('abstract', e.target.value)}
-                className="text-sm text-muted-foreground leading-relaxed w-full"
-                rows={isAbstractExpanded ? 12 : 4}
+                className="text-sm text-muted-foreground leading-relaxed w-full border-0 shadow-none focus-visible:ring-0 p-0 bg-transparent resize-none"
+                rows={isAbstractExpanded ? 20 : 4}
               />
               {isLongAbstract && (
                 <Button variant="link" onClick={() => setIsAbstractExpanded(!isAbstractExpanded)} className="p-0 h-auto mt-2 text-sm">
@@ -182,8 +181,8 @@ export function PaperDetailsPane({ paper, onSummaryUpdate, onPaperUpdate, onClos
                 </Button>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ScrollArea>
   );
