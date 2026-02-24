@@ -10,7 +10,7 @@ CREATE TABLE users (
 -- Collections table for organizing papers
 CREATE TABLE collections (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE DEFAULT auth.uid()::text,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE DEFAULT (auth.jwt()->>'sub'),
     name TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -18,7 +18,7 @@ CREATE TABLE collections (
 -- Papers table to store PDF metadata
 CREATE TABLE papers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE DEFAULT auth.uid()::text,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE DEFAULT (auth.jwt()->>'sub'),
     collection_id UUID REFERENCES collections(id) ON DELETE SET NULL,
     title TEXT NOT NULL,
     authors JSONB,
@@ -40,7 +40,7 @@ CREATE TABLE papers (
 CREATE TABLE highlights (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     paper_id UUID NOT NULL REFERENCES papers(id) ON DELETE CASCADE,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE DEFAULT auth.uid()::text,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE DEFAULT (auth.jwt()->>'sub'),
     highlighted_text TEXT NOT NULL,
     explanation TEXT,
     "position" JSONB,
@@ -51,7 +51,7 @@ CREATE TABLE highlights (
 CREATE TABLE notes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     paper_id UUID NOT NULL REFERENCES papers(id) ON DELETE CASCADE,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE DEFAULT auth.uid()::text,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE DEFAULT (auth.jwt()->>'sub'),
     note_content TEXT NOT NULL,
     "position" JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -79,23 +79,23 @@ ALTER TABLE papers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE highlights ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies
+-- RLS Policies (Clerk third-party auth: use JWT 'sub' claim = Clerk user ID)
 CREATE POLICY "Users can manage their own data" ON users
-FOR ALL USING (auth.uid()::text = id)
-WITH CHECK (auth.uid()::text = id);
+FOR ALL USING ((auth.jwt()->>'sub') = id)
+WITH CHECK ((auth.jwt()->>'sub') = id);
 
 CREATE POLICY "Users can manage their own collections" ON collections
-FOR ALL USING (auth.uid()::text = user_id)
-WITH CHECK (auth.uid()::text = user_id);
+FOR ALL USING ((auth.jwt()->>'sub') = user_id)
+WITH CHECK ((auth.jwt()->>'sub') = user_id);
 
 CREATE POLICY "Users can manage their own papers" ON papers
-FOR ALL USING (auth.uid()::text = user_id)
-WITH CHECK (auth.uid()::text = user_id);
+FOR ALL USING ((auth.jwt()->>'sub') = user_id)
+WITH CHECK ((auth.jwt()->>'sub') = user_id);
 
 CREATE POLICY "Users can manage their own highlights" ON highlights
-FOR ALL USING (auth.uid()::text = user_id)
-WITH CHECK (auth.uid()::text = user_id);
+FOR ALL USING ((auth.jwt()->>'sub') = user_id)
+WITH CHECK ((auth.jwt()->>'sub') = user_id);
 
 CREATE POLICY "Users can manage their own notes" ON notes
-FOR ALL USING (auth.uid()::text = user_id)
-WITH CHECK (auth.uid()::text = user_id);
+FOR ALL USING ((auth.jwt()->>'sub') = user_id)
+WITH CHECK ((auth.jwt()->>'sub') = user_id);
