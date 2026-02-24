@@ -12,6 +12,7 @@ import { PlusCircle } from 'lucide-react';
 import { ImportDialog } from './import-dialog';
 import { cn } from '@/lib/utils';
 import { Sheet } from '@/components/ui/sheet';
+import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
 
 function RichieWorkspaceLayout({
   papers,
@@ -50,11 +51,18 @@ function RichieWorkspaceLayout({
             <h1 className="text-lg font-semibold tracking-tight">All Papers</h1>
           </div>
           <div className="flex items-center gap-4">
-            <Button size="sm" className="gap-2" onClick={() => setImportDialogOpen(true)}>
-              <PlusCircle />
-              Import
-            </Button>
-            <UserNav />
+            <SignedIn>
+              <Button size="sm" className="gap-2" onClick={() => setImportDialogOpen(true)}>
+                <PlusCircle />
+                Import
+              </Button>
+              <UserNav />
+            </SignedIn>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button>Sign In</Button>
+              </SignInButton>
+            </SignedOut>
           </div>
         </header>
         <main

@@ -71,10 +71,6 @@ export function LeftSidebarContent({ collections }: { collections: Collection[] 
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarSeparator />
-      <SidebarFooter>
-        <UserNav />
-      </SidebarFooter>
     </>
   );
 }
