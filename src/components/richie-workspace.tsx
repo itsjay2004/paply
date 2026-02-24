@@ -29,7 +29,7 @@ function RichieWorkspaceLayout({
   collections: Collection[];
   summaries: Record<string, string[]>;
   selectedPaper: Paper | null;
-  onSelectPaper: React.Dispatch<React.SetStateAction<Paper | null>>;
+  onSelectPaper: (paper: Paper | null) => void;
   onSummaryUpdate: (paperId: string, summary: string[]) => void;
   onPaperUpdate: (paper: Paper) => void;
   isImportDialogOpen: boolean;
@@ -60,9 +60,7 @@ function RichieWorkspaceLayout({
         <main
           className={cn(
             'flex-1 grid overflow-hidden',
-            selectedPaper
-              ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-[55%_45%] xl:grid-cols-[60%_40%] 2xl:grid-cols-[65%_35%]'
-              : 'grid-cols-1'
+            'grid-cols-1'
           )}
         >
           <PaperList
@@ -71,16 +69,28 @@ function RichieWorkspaceLayout({
             selectedPaper={selectedPaper}
             onSelectPaper={onSelectPaper}
           />
-          {selectedPaper && (
-            <PaperDetailsPane
-              paper={selectedPaper}
-              onSummaryUpdate={onSummaryUpdate}
-              onPaperUpdate={onPaperUpdate}
-              onClose={() => onSelectPaper(null)}
-            />
-          )}
         </main>
       </div>
+      
+      {/* Floating Pane */}
+      <div
+        className={cn(
+          'fixed top-0 right-0 h-full w-full md:w-1/2 lg:w-[45%] xl:w-[40%] 2xl:w-[35%] transform-gpu transition-transform duration-300 ease-in-out z-40',
+          'p-4',
+          selectedPaper ? 'translate-x-0' : 'translate-x-full',
+          !selectedPaper && 'pointer-events-none'
+        )}
+      >
+        {selectedPaper && (
+            <PaperDetailsPane
+                paper={selectedPaper}
+                onSummaryUpdate={onSummaryUpdate}
+                onPaperUpdate={onPaperUpdate}
+                onClose={() => onSelectPaper(null)}
+            />
+        )}
+      </div>
+
       <ImportDialog open={isImportDialogOpen} onOpenChange={setImportDialogOpen} onPaperImported={onPaperImported} />
     </div>
   );
