@@ -70,72 +70,84 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper }: P
           </TableHeader>
 
           <TableBody>
-            {filteredPapers.map(paper => (
-              <TableRow
-                key={paper.id}
-                className={cn(
-                  'cursor-pointer transition-all duration-200 border-b hover:bg-muted/40',
-                  {
-                    'bg-primary/10 hover:bg-primary/15 border-l-4 border-primary':
-                      selectedPaper?.id === paper.id,
-                  }
-                )}
-                onClick={() => onSelectPaper(paper)}
-              >
-                
-                {/* Year */}
-                <TableCell className="text-xs text-muted-foreground font-medium">
-                  {paper.year}
-                </TableCell>
-
-                {/* Authors */}
-                <TableCell className="text-xs text-muted-foreground">
-                  {paper.authors.slice(0, 2).join(', ')}
-                  {paper.authors.length > 2 ? ' et al.' : ''}
-                </TableCell>
-
-                {/* Title + Journal + Summary */}
-                <TableCell className="py-3">
-                  <div className="font-semibold text-sm leading-snug text-foreground">
-                    {paper.title}
-                  </div>
-
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {paper.journal}
-                  </div>
-
-                  {summaries[paper.id] && (
-                    <ul className="mt-3 text-xs text-muted-foreground list-disc pl-4 space-y-1 max-w-prose">
-                      {summaries[paper.id].slice(0, 2).map((point, i) => (
-                        <li key={i} className="truncate hover:text-foreground transition-colors">
-                          {point}
-                        </li>
-                      ))}
-                    </ul>
+            {filteredPapers.length > 0 ? (
+              filteredPapers.map(paper => (
+                <TableRow
+                  key={paper.id}
+                  className={cn(
+                    'cursor-pointer transition-all duration-200 border-b hover:bg-muted/40',
+                    {
+                      'bg-primary/10 hover:bg-primary/15 border-l-4 border-primary':
+                        selectedPaper?.id === paper.id,
+                    }
                   )}
-                </TableCell>
+                  onClick={() => onSelectPaper(paper)}
+                >
+                  
+                  {/* Year */}
+                  <TableCell className="text-xs text-muted-foreground font-medium">
+                    {paper.year}
+                  </TableCell>
 
-                {/* File Button */}
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hover:bg-primary/10 hover:text-primary transition-colors"
-                    asChild
-                  >
-                    <a
-                      href={paper.pdfUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
+                  {/* Authors */}
+                  <TableCell className="text-xs text-muted-foreground">
+                    {paper.authors.join(', ')}
+                  </TableCell>
+
+                  {/* Title + Journal + Summary */}
+                  <TableCell className="py-3">
+                    <div className="font-semibold text-sm leading-snug text-foreground">
+                      {paper.title}
+                    </div>
+
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {paper.journal}
+                    </div>
+
+                    {summaries[paper.id] && (
+                      <ul className="mt-3 text-xs text-muted-foreground list-disc pl-4 space-y-1 max-w-prose">
+                        {summaries[paper.id].slice(0, 2).map((point, i) => (
+                          <li key={i} className="truncate hover:text-foreground transition-colors">
+                            {point}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </TableCell>
+
+                  {/* File Button */}
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="hover:bg-primary/10 hover:text-primary transition-colors"
+                      asChild
                     >
-                      <File className="w-4 h-4" />
-                    </a>
-                  </Button>
-                </TableCell>
+                      <a
+                        href={paper.pdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <File className="w-4 h-4" />
+                      </a>
+                    </Button>
+                  </TableCell>
 
-              </TableRow>
-            ))}
+                </TableRow>
+              ))
+            ) : (
+                <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                        <div className="flex flex-col items-center gap-2">
+                            <p className="text-muted-foreground">No papers in your library yet.</p>
+                            <p className="text-sm text-muted-foreground">
+                                Click the "Import" button to add your first paper.
+                            </p>
+                        </div>
+                    </TableCell>
+                </TableRow>
+            )}
           </TableBody>
         </Table>
       </ScrollArea>

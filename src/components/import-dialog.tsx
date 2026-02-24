@@ -21,7 +21,7 @@ import type { Paper } from '@/lib/types';
 interface ImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPaperImported: (paper: Paper) => void;
+  onPaperImported: (paper: Omit<Paper, 'id'>) => void;
 }
 
 export function ImportDialog({ open, onOpenChange, onPaperImported }: ImportDialogProps) {
@@ -54,7 +54,6 @@ export function ImportDialog({ open, onOpenChange, onPaperImported }: ImportDial
     startImportTransition(async () => {
       try {
         let paperDetails;
-        let localPdfUrl: string | null = null;
 
         if (activeTab === 'doi') {
           if (!doi.trim()) {
@@ -74,24 +73,10 @@ export function ImportDialog({ open, onOpenChange, onPaperImported }: ImportDial
               reader.readAsDataURL(pdfFile);
           });
           paperDetails = await importPaperFromPdf({ pdfDataUri });
-          localPdfUrl = URL.createObjectURL(pdfFile);
         }
 
         if (paperDetails) {
-            const newPaper: Paper = {
-                id: crypto.randomUUID(),
-                title: paperDetails.title,
-                authors: paperDetails.authors,
-                year: paperDetails.year,
-                journal: paperDetails.journal,
-                abstract: paperDetails.abstract,
-                summary: [],
-                pdfUrl: localPdfUrl ?? '/placeholder.pdf',
-                tags: [],
-                collectionIds: [],
-                doi: (paperDetails as any).doi,
-            };
-            onPaperImported(newPaper);
+            onPaperImported(paperDetails);
             toast({ title: 'Success', description: 'Paper imported successfully.' });
             handleOpenChange(false);
         }

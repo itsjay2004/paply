@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import type { Paper } from '@/lib/types';
+import type { Paper, Collection } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, Loader2, X, File as FileIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, Loader2, X, File as FileIcon, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getSummary } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -12,11 +12,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from './ui/textarea';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface PaperDetailsPaneProps {
   paper: Paper;
+  collections: Collection[];
   onSummaryUpdate: (paperId: string, summary: string[]) => void;
   onPaperUpdate: (paper: Paper) => void;
+  onPaperDelete: (paperId: string) => void;
   onClose: () => void;
 }
 
@@ -30,7 +33,7 @@ const DetailInput = ({ className, ...props }: React.ComponentProps<typeof Input>
   />
 );
 
-export function PaperDetailsPane({ paper, onSummaryUpdate, onPaperUpdate, onClose }: PaperDetailsPaneProps) {
+export function PaperDetailsPane({ paper, collections, onSummaryUpdate, onPaperUpdate, onPaperDelete, onClose }: PaperDetailsPaneProps) {
   const { toast } = useToast();
   const [isSummarizing, startSummaryTransition] = useTransition();
   const [editedPaper, setEditedPaper] = useState<Paper>(paper);
@@ -76,16 +79,27 @@ export function PaperDetailsPane({ paper, onSummaryUpdate, onPaperUpdate, onClos
     <div className="h-full w-full rounded-2xl bg-card border shadow-2xl flex flex-col overflow-hidden">
       <ScrollArea className="h-full relative">
         
-        {/* Close Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-4 right-4 z-20 bg-muted hover:bg-red-500 rounded-full"
-          onClick={onClose}
-        >
-          <X className="h-5 w-5" />
-          <span className="sr-only">Close</span>
-        </Button>
+        {/* Header Buttons */}
+        <div className="absolute top-4 right-4 z-20 flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="bg-muted hover:bg-red-500/80 hover:text-white rounded-full"
+            onClick={() => onPaperDelete(paper.id)}
+          >
+            <Trash2 className="h-5 w-5" />
+            <span className="sr-only">Delete</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="bg-muted hover:bg-red-500 rounded-full"
+            onClick={onClose}
+          >
+            <X className="h-5 w-5" />
+            <span className="sr-only">Close</span>
+          </Button>
+        </div>
 
         <div className="p-8 space-y-10 max-w-3xl mx-auto">
 
@@ -105,17 +119,36 @@ export function PaperDetailsPane({ paper, onSummaryUpdate, onPaperUpdate, onClos
               placeholder="Authors (comma-separated)"
             />
 
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="mt-2 w-fit"
-            >
-              <a href={paper.pdfUrl} target="_blank" rel="noopener noreferrer">
-                <FileIcon className="mr-2 h-4 w-4" />
-                Open PDF
-              </a>
-            </Button>
+            <div className="flex gap-2 items-center">
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="mt-2 w-fit"
+              >
+                <a href={paper.pdfUrl} target="_blank" rel="noopener noreferrer">
+                  <FileIcon className="mr-2 h-4 w-4" />
+                  Open PDF
+                </a>
+              </Button>
+
+              <Select
+                value={editedPaper.collection_id || ''}
+                onValueChange={(value) => handleInputChange('collection_id', value)}
+              >
+                <SelectTrigger className="w-[200px] mt-2 h-9 text-sm">
+                  <SelectValue placeholder="Select a collection" />
+                </SelectTrigger>
+                <SelectContent>
+                  {collections.map((collection) => (
+                    <SelectItem key={collection.id} value={collection.id}>
+                      {collection.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
           </div>
 
           {/* DETAILS CARD */}

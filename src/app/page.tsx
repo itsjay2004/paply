@@ -1,5 +1,4 @@
 import { RichieWorkspace } from '@/components/richie-workspace';
-import { papers, collections } from '@/lib/data';
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 
@@ -8,7 +7,7 @@ export default function Home() {
     <>
       <SignedIn>
         <main>
-          <RichieWorkspace papers={papers} collections={collections} />
+          <RichieWorkspace />
         </main>
       </SignedIn>
       <SignedOut>

@@ -1,0 +1,101 @@
+-- Users table
+CREATE TABLE users (
+    id TEXT PRIMARY KEY, -- From Clerk
+    email TEXT,
+    name TEXT,
+    profile_image_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Collections table for organizing papers
+CREATE TABLE collections (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE DEFAULT auth.uid()::text,
+    name TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Papers table to store PDF metadata
+CREATE TABLE papers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE DEFAULT auth.uid()::text,
+    collection_id UUID REFERENCES collections(id) ON DELETE SET NULL,
+    title TEXT NOT NULL,
+    authors JSONB,
+    publication_date DATE,
+    doi TEXT UNIQUE,
+    abstract TEXT,
+    summary TEXT,
+    pdf_url TEXT,
+    work_type TEXT,
+    language TEXT,
+    publisher TEXT,
+    publication_city TEXT,
+    publication_country TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Highlights table
+CREATE TABLE highlights (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    paper_id UUID NOT NULL REFERENCES papers(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE DEFAULT auth.uid()::text,
+    highlighted_text TEXT NOT NULL,
+    explanation TEXT,
+    "position" JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Notes table for sticky notes
+CREATE TABLE notes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    paper_id UUID NOT NULL REFERENCES papers(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE DEFAULT auth.uid()::text,
+    note_content TEXT NOT NULL,
+    "position" JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create a function to update the updated_at timestamp
+CREATE OR REPLACE FUNCTION trigger_set_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create a trigger to update the updated_at timestamp on papers table
+CREATE TRIGGER set_timestamp
+BEFORE UPDATE ON papers
+FOR EACH ROW
+EXECUTE PROCEDURE trigger_set_timestamp();
+
+-- Enable Row Level Security for all tables
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE collections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE papers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE highlights ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Users can manage their own data" ON users
+FOR ALL USING (auth.uid()::text = id)
+WITH CHECK (auth.uid()::text = id);
+
+CREATE POLICY "Users can manage their own collections" ON collections
+FOR ALL USING (auth.uid()::text = user_id)
+WITH CHECK (auth.uid()::text = user_id);
+
+CREATE POLICY "Users can manage their own papers" ON papers
+FOR ALL USING (auth.uid()::text = user_id)
+WITH CHECK (auth.uid()::text = user_id);
+
+CREATE POLICY "Users can manage their own highlights" ON highlights
+FOR ALL USING (auth.uid()::text = user_id)
+WITH CHECK (auth.uid()::text = user_id);
+
+CREATE POLICY "Users can manage their own notes" ON notes
+FOR ALL USING (auth.uid()::text = user_id)
+WITH CHECK (auth.uid()::text = user_id);

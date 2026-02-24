@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   SidebarContent,
   SidebarHeader,
@@ -7,16 +8,25 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
-  SidebarFooter,
-  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Button } from './ui/button';
-import { BookOpenCheck, Clock, Folder, Library, Plus, Star, Tag } from 'lucide-react';
+import { BookOpenCheck, Clock, Folder, Library, Plus, Star } from 'lucide-react';
 import type { Collection } from '@/lib/types';
-import { UserNav } from './user-nav';
 import { Badge } from './ui/badge';
+import { Input } from './ui/input';
 
-export function LeftSidebarContent({ collections }: { collections: Collection[] }) {
+export function LeftSidebarContent({ collections, onCollectionCreate }: { collections: Collection[]; onCollectionCreate: (name: string) => Promise<void> }) {
+  const [newCollectionName, setNewCollectionName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreate = async () => {
+    if (newCollectionName.trim() !== '') {
+      await onCollectionCreate(newCollectionName.trim());
+      setNewCollectionName('');
+      setIsCreating(false);
+    }
+  };
+
   return (
     <>
       <SidebarHeader>
@@ -52,12 +62,27 @@ export function LeftSidebarContent({ collections }: { collections: Collection[] 
         <SidebarGroup className="mt-4">
           <SidebarGroupLabel className="flex items-center">
             <span className="flex-1">Collections</span>
-            <Button variant="ghost" size="icon" className="size-6">
+            <Button variant="ghost" size="icon" className="size-6" onClick={() => setIsCreating(!isCreating)}>
               <Plus className="size-4" />
             </Button>
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {isCreating && (
+                <div className="flex items-center gap-2 p-2">
+                  <Input
+                    type="text"
+                    placeholder="New collection..."
+                    value={newCollectionName}
+                    onChange={(e) => setNewCollectionName(e.target.value)}
+                    className="h-8"
+                  />
+                  <Button size="sm" onClick={handleCreate}>Create</Button>
+                </div>
+              )}
+              {collections.length === 0 && !isCreating && (
+                <p className="p-2 text-sm text-muted-foreground">No collections yet. Click the '+' to create one.</p>
+              )}
               {collections.map(collection => (
                 <SidebarMenuItem key={collection.id}>
                   <SidebarMenuButton tooltip={collection.name}>
