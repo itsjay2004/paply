@@ -32,57 +32,108 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper }: P
   );
 
   return (
-    <div className="flex flex-col h-full border-r bg-muted/20">
-      <div className="p-4 border-b">
+    <div className="flex flex-col h-full border-r bg-background/60 backdrop-blur-sm">
+      
+      {/* Search */}
+      <div className="p-4 border-b bg-background/80 backdrop-blur-md">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search papers..."
-            className="pl-10"
+            className="pl-10 h-9 bg-muted/40 border-muted focus-visible:ring-2 focus-visible:ring-primary/40 transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
+
+      {/* Table */}
       <ScrollArea className="flex-1">
         <Table>
-          <TableHeader className="sticky top-0 bg-muted/20 z-10">
-            <TableRow>
-              <TableHead className="w-24">Year</TableHead>
-              <TableHead>Authors</TableHead>
-              <TableHead className="w-[45%]">Title</TableHead>
-              <TableHead className="text-right w-16">File</TableHead>
+          
+          {/* Header */}
+          <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b shadow-sm">
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-24 text-xs uppercase tracking-wide text-muted-foreground">
+                Year
+              </TableHead>
+              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground">
+                Authors
+              </TableHead>
+              <TableHead className="w-[45%] text-xs uppercase tracking-wide text-muted-foreground">
+                Title
+              </TableHead>
+              <TableHead className="text-right w-16 text-xs uppercase tracking-wide text-muted-foreground">
+                File
+              </TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {filteredPapers.map(paper => (
               <TableRow
                 key={paper.id}
-                className={cn('cursor-pointer', {
-                  'bg-accent': selectedPaper?.id === paper.id,
-                })}
+                className={cn(
+                  'cursor-pointer transition-all duration-200 border-b hover:bg-muted/40',
+                  {
+                    'bg-primary/10 hover:bg-primary/15 border-l-4 border-primary':
+                      selectedPaper?.id === paper.id,
+                  }
+                )}
                 onClick={() => onSelectPaper(paper)}
               >
-                <TableCell className="text-xs">{paper.year}</TableCell>
-                <TableCell className="text-xs">{paper.authors.slice(0, 2).join(', ')}{paper.authors.length > 2 ? ' et al.' : ''}</TableCell>
-                <TableCell>
-                  <div className="font-medium">{paper.title}</div>
-                  <div className="text-xs text-muted-foreground">{paper.journal}</div>
+                
+                {/* Year */}
+                <TableCell className="text-xs text-muted-foreground font-medium">
+                  {paper.year}
+                </TableCell>
+
+                {/* Authors */}
+                <TableCell className="text-xs text-muted-foreground">
+                  {paper.authors.slice(0, 2).join(', ')}
+                  {paper.authors.length > 2 ? ' et al.' : ''}
+                </TableCell>
+
+                {/* Title + Journal + Summary */}
+                <TableCell className="py-3">
+                  <div className="font-semibold text-sm leading-snug text-foreground">
+                    {paper.title}
+                  </div>
+
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {paper.journal}
+                  </div>
+
                   {summaries[paper.id] && (
-                     <ul className="mt-2 text-xs text-muted-foreground list-disc pl-4 space-y-1 group-data-[collapsible=icon]:hidden">
-                       {summaries[paper.id].slice(0, 2).map((point, i) => (
-                          <li key={i} className="truncate">{point}</li>
-                       ))}
-                     </ul>
+                    <ul className="mt-3 text-xs text-muted-foreground list-disc pl-4 space-y-1 max-w-prose">
+                      {summaries[paper.id].slice(0, 2).map((point, i) => (
+                        <li key={i} className="truncate hover:text-foreground transition-colors">
+                          {point}
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </TableCell>
+
+                {/* File Button */}
                 <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" asChild>
-                        <a href={paper.pdfUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                            <File className="w-4 h-4" />
-                        </a>
-                    </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-primary/10 hover:text-primary transition-colors"
+                    asChild
+                  >
+                    <a
+                      href={paper.pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <File className="w-4 h-4" />
+                    </a>
+                  </Button>
                 </TableCell>
+
               </TableRow>
             ))}
           </TableBody>
