@@ -94,7 +94,7 @@ export async function importPaperFromPdf(
     throw new Error('Invalid input for PDF import.');
   }
 
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) {
     throw new Error('You must be signed in to upload a PDF.');
   }
@@ -119,7 +119,7 @@ export async function importPaperFromPdf(
       year: details.year,
       abstract: details.abstract,
       doi: details.doi ?? null,
-      publisher: details.journal,
+      source: details.journal ?? undefined,
       pdfUrl,
       summary: [],
       tags: [],
@@ -149,7 +149,7 @@ export async function importPaperFromPdfWithKey(
     throw new Error('Invalid S3 key for PDF import.');
   }
 
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) {
     throw new Error('You must be signed in to import a PDF.');
   }
@@ -171,7 +171,7 @@ export async function importPaperFromPdfWithKey(
       year: details.year,
       abstract: details.abstract,
       doi: details.doi ?? null,
-      publisher: details.journal,
+      source: details.journal ?? undefined,
       pdfUrl: key,
       summary: [],
       tags: [],

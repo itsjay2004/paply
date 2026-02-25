@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const accessToken = await getToken({ template: "supabase" });
 
     if (!accessToken) {
@@ -43,8 +43,11 @@ export async function GET() {
 function mapBodyToPaperRow(body: Record<string, unknown>, userId: string) {
   const year = body.year != null ? Number(body.year) : NaN;
   const publicationDate =
-    body.publication_date ||
-    (!isNaN(year) && year > 0 ? `${year}-01-01` : null);
+    (body.publication_date != null && body.publication_date !== "")
+      ? String(body.publication_date)
+      : !isNaN(year) && year > 0
+        ? `${year}-01-01`
+        : null;
 
   const summary = body.summary;
   const summaryText =
@@ -67,15 +70,16 @@ function mapBodyToPaperRow(body: Record<string, unknown>, userId: string) {
     pdf_url: typeof body.pdfUrl === "string" ? body.pdfUrl : (body.pdf_url as string) ?? null,
     work_type: typeof body.work_type === "string" ? body.work_type : (body.typeOfWork as string) ?? null,
     language: typeof body.language === "string" ? body.language : null,
-    publisher: typeof body.publisher === "string" ? body.publisher : null,
-    publication_city: typeof body.publication_city === "string" ? body.publication_city : (body.city as string) ?? null,
-    publication_country: typeof body.publication_country === "string" ? body.publication_country : (body.country as string) ?? null,
+    source: typeof body.source === "string" ? body.source : null,
+    paper_url: typeof body.paperUrl === "string" ? body.paperUrl : null,
+    landing_page_url: typeof body.landingPageUrl === "string" ? body.landingPageUrl : null,
+    cited_by_count: typeof body.citedByCount === "number" && Number.isInteger(body.citedByCount) ? body.citedByCount : null,
   };
 }
 
 export async function POST(req: Request) {
   try {
-    const { getToken, userId } = auth();
+    const { getToken, userId } = await auth();
     const body = await req.json();
     const accessToken = await getToken({ template: "supabase" });
 

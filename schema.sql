@@ -29,9 +29,10 @@ CREATE TABLE papers (
     pdf_url TEXT,
     work_type TEXT,
     language TEXT,
-    publisher TEXT,
-    publication_city TEXT,
-    publication_country TEXT,
+    source TEXT,
+    paper_url TEXT,
+    landing_page_url TEXT,
+    cited_by_count INTEGER,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -99,3 +100,13 @@ WITH CHECK ((auth.jwt()->>'sub') = user_id);
 CREATE POLICY "Users can manage their own notes" ON notes
 FOR ALL USING ((auth.jwt()->>'sub') = user_id)
 WITH CHECK ((auth.jwt()->>'sub') = user_id);
+
+-- Migration for existing DB: apply schema changes (run if papers table already exists)
+-- Add new columns:
+--   ALTER TABLE papers ADD COLUMN IF NOT EXISTS source TEXT;
+--   ALTER TABLE papers ADD COLUMN IF NOT EXISTS paper_url TEXT;
+-- Remove old columns (migrate data first if needed):
+--   ALTER TABLE papers DROP COLUMN IF EXISTS publisher;
+--   ALTER TABLE papers DROP COLUMN IF EXISTS publication_city;
+--   ALTER TABLE papers DROP COLUMN IF EXISTS publication_country;
+--   ALTER TABLE papers DROP COLUMN IF EXISTS raw_source_name;

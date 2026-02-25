@@ -101,7 +101,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper }: P
                     </div>
 
                     <div className="text-xs text-muted-foreground mt-1">
-                      {paper.journal}
+                      {paper.source}
                     </div>
 
                     {summaries[paper.id] && (
@@ -125,9 +125,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper }: P
                         asChild
                       >
                         <a
-                          href={`/api/papers/${paper.id}/pdf-url`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          href={`/papers/${paper.id}/view`}
                           onClick={(e) => e.stopPropagation()}
                         >
                           <File className="w-4 h-4" />

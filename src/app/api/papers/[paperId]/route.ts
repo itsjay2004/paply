@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { paperId: string } }
 ) {
   try {
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const accessToken = await getToken({ template: "supabase" });
 
     if (!accessToken) {
@@ -68,11 +68,10 @@ function mapBodyToPaperUpdate(body: Record<string, unknown>) {
   if (body.work_type !== undefined) out.work_type = body.work_type;
   else if (body.typeOfWork !== undefined) out.work_type = body.typeOfWork;
   if (body.language !== undefined) out.language = body.language;
-  if (body.publisher !== undefined) out.publisher = body.publisher;
-  if (body.publication_city !== undefined) out.publication_city = body.publication_city;
-  else if (body.city !== undefined) out.publication_city = body.city;
-  if (body.publication_country !== undefined) out.publication_country = body.publication_country;
-  else if (body.country !== undefined) out.publication_country = body.country;
+  if (body.source !== undefined) out.source = typeof body.source === "string" ? body.source : null;
+  if (body.paperUrl !== undefined) out.paper_url = typeof body.paperUrl === "string" ? body.paperUrl : null;
+  if (body.landingPageUrl !== undefined) out.landing_page_url = typeof body.landingPageUrl === "string" ? body.landingPageUrl : null;
+  if (body.citedByCount !== undefined) out.cited_by_count = typeof body.citedByCount === "number" && Number.isInteger(body.citedByCount) ? body.citedByCount : null;
   if (body.collection_id !== undefined)
     out.collection_id = body.collection_id != null && body.collection_id !== "" ? body.collection_id : null;
 
@@ -84,7 +83,7 @@ export async function PATCH(
   { params }: { params: { paperId: string } }
 ) {
   try {
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const body = await req.json();
     const values = mapBodyToPaperUpdate(body as Record<string, unknown>);
     const accessToken = await getToken({ template: "supabase" });
@@ -118,7 +117,7 @@ export async function DELETE(
   { params }: { params: { paperId: string } }
 ) {
   try {
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const accessToken = await getToken({ template: "supabase" });
 
     if (!accessToken) {

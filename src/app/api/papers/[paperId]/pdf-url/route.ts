@@ -7,24 +7,26 @@ import { NextResponse } from "next/server";
  * GET /api/papers/[paperId]/pdf-url
  * Redirects to a presigned S3 URL if the paper's pdf_url is our S3 key (private bucket),
  * or to the external URL otherwise. Requires auth and paper ownership.
+ * If Accept: application/json or ?json=1, returns { url } instead of redirect (for in-app viewer).
  */
 export async function GET(
-  _req: Request,
-  { params }: { params: { paperId: string } }
+  req: Request,
+  { params }: { params: Promise<{ paperId: string }> }
 ) {
   try {
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const accessToken = await getToken({ template: "supabase" });
 
     if (!accessToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { paperId } = await params;
     const supabase = getSupabase(accessToken);
     const { data: paper, error } = await supabase
       .from("papers")
       .select("pdf_url")
-      .eq("id", params.paperId)
+      .eq("id", paperId)
       .single();
 
     if (error || !paper) {
@@ -36,11 +38,17 @@ export async function GET(
       return NextResponse.json({ error: "No PDF linked to this paper" }, { status: 404 });
     }
 
+    const wantJson =
+      req.headers.get("accept")?.includes("application/json") ||
+      new URL(req.url).searchParams.get("json") === "1";
+
     if (isS3KeyPdfUrl(pdfUrl)) {
       const url = await getPresignedPdfUrl(pdfUrl);
+      if (wantJson) return NextResponse.json({ url });
       return NextResponse.redirect(url, 302);
     }
 
+    if (wantJson) return NextResponse.json({ url: pdfUrl });
     return NextResponse.redirect(pdfUrl, 302);
   } catch (err) {
     console.error("[PDF_URL_GET]", err);

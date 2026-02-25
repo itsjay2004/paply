@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getPresignedPutUrl } from "@/lib/s3";
 import { NextResponse } from "next/server";
 
-const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_PDF_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 
 /**
  * POST /api/upload-pdf/presigned-url
@@ -11,7 +11,7 @@ const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
  */
 export async function POST(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -20,12 +20,16 @@ export async function POST(req: Request) {
     const size = typeof body.size === "number" ? body.size : 0;
     if (size > MAX_PDF_SIZE_BYTES) {
       return NextResponse.json(
-        { error: "PDF must be 10 MB or smaller" },
+        { error: "PDF must be 100 MB or smaller" },
         { status: 400 }
       );
     }
 
-    const objectKeyId = crypto.randomUUID();
+    // Optional: attach PDF to an existing paper (DOI-imported). Key will be uploads/{userId}/{paperId}.pdf
+    const paperId = typeof body.paperId === "string" && /^[a-f0-9-]{36}$/i.test(body.paperId.trim())
+      ? body.paperId.trim()
+      : null;
+    const objectKeyId = paperId ?? crypto.randomUUID();
     const { putUrl, key } = await getPresignedPutUrl(userId, objectKeyId);
 
     return NextResponse.json({ putUrl, key });

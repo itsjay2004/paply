@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
 import type { Paper, Collection } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, Loader2, X, FileText, ChevronDown, ChevronUp, Trash2, Check } from 'lucide-react';
+import { Sparkles, Loader2, X, FileText, ChevronDown, ChevronUp, Trash2, Check, UploadCloud } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getSummary } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -72,6 +72,8 @@ export function PaperDetailsPane({
   const [isAbstractExpanded, setIsAbstractExpanded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastPersisted, setLastPersisted] = useState<Paper | null>(null);
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Synchronize internal state when the selected paper changes from props
@@ -162,6 +164,55 @@ export function PaperDetailsPane({
     });
   };
 
+  /** 
+   * Attach a PDF to this paper (e.g. after DOI import). Uploads to S3 and updates paper.pdfUrl.
+   */
+  const handleAddPdfClick = () => {
+    pdfInputRef.current?.click();
+  };
+
+  const handleAddPdfFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !editedPaper.id) return;
+    const MAX_PDF_BYTES = 100 * 1024 * 1024;
+    if (file.size > MAX_PDF_BYTES) {
+      toast({ variant: 'destructive', title: 'Error', description: 'PDF must be 100 MB or smaller.' });
+      return;
+    }
+    setIsUploadingPdf(true);
+    try {
+      const res = await fetch('/api/upload-pdf/presigned-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ size: file.size, paperId: editedPaper.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? 'Failed to get upload URL');
+      }
+      const { putUrl, key } = await res.json();
+      const putResponse = await fetch(putUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': 'application/pdf' },
+      });
+      if (!putResponse.ok) {
+        throw new Error('Failed to upload PDF');
+      }
+      const updatedPaper = { ...editedPaper, pdfUrl: key };
+      setEditedPaper(updatedPaper);
+      onPaperUpdate(updatedPaper);
+      await persist(updatedPaper);
+      toast({ title: 'PDF added', description: 'The PDF has been attached to this paper.' });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      toast({ variant: 'destructive', title: 'Upload failed', description: msg });
+    } finally {
+      setIsUploadingPdf(false);
+    }
+  };
+
   const isLongAbstract = (editedPaper.abstract?.length ?? 0) > 300;
 
   /** 
@@ -184,12 +235,14 @@ export function PaperDetailsPane({
   // Dynamic list of metadata fields to render in the details grid
   const metadataFields: { label: string; field: keyof Paper; type?: 'number' | 'text' }[] = [
     { label: 'Publication year', field: 'year', type: 'number' },
+    { label: 'Publication date', field: 'publication_date' },
     { label: 'DOI', field: 'doi' },
     { label: 'Work type', field: 'typeOfWork' },
     { label: 'Language', field: 'language' },
-    { label: 'Publisher', field: 'publisher' },
-    { label: 'Publication city', field: 'city' },
-    { label: 'Publication country', field: 'country' },
+    { label: 'Source', field: 'source' },
+    { label: 'Paper URL', field: 'paperUrl' },
+    { label: 'Landing page URL', field: 'landingPageUrl' },
+    { label: 'Cited by count', field: 'citedByCount', type: 'number' },
     { label: 'PDF URL', field: 'pdfUrl' },
   ];
 
@@ -259,12 +312,43 @@ export function PaperDetailsPane({
             </Field>
 
             <div className="flex flex-wrap gap-3 items-center pt-1">
-              {editedPaper.pdfUrl && (
-                <Button asChild variant="outline" size="sm" className="rounded-lg gap-2">
-                  <a href={`/api/papers/${editedPaper.id}/pdf-url`} target="_blank" rel="noopener noreferrer">
-                    <FileText className="h-4 w-4" />
-                    Open PDF
-                  </a>
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept="application/pdf"
+                className="sr-only"
+                aria-hidden
+                onChange={handleAddPdfFileChange}
+              />
+              {editedPaper.pdfUrl ? (
+                <>
+                  <Button asChild variant="default" size="sm" className="rounded-lg gap-2">
+                    <a href={`/papers/${editedPaper.id}/view`}>
+                      <FileText className="h-4 w-4" />
+                      View PDF
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="rounded-lg gap-2">
+                    <a href={`/api/papers/${editedPaper.id}/pdf-url`} target="_blank" rel="noopener noreferrer">
+                      Open in new tab
+                    </a>
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg gap-2"
+                  onClick={handleAddPdfClick}
+                  disabled={isUploadingPdf}
+                >
+                  {isUploadingPdf ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <UploadCloud className="h-4 w-4" />
+                  )}
+                  {isUploadingPdf ? 'Uploading PDF…' : 'Add PDF'}
                 </Button>
               )}
               <div className="min-w-[200px]">

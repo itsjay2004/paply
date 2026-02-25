@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: { collectionId: string } }
 ) {
   try {
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const accessToken = await getToken({ template: "supabase" });
 
     if (!accessToken) {
@@ -43,7 +43,7 @@ export async function PATCH(
   { params }: { params: { collectionId: string } }
 ) {
   try {
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const { name } = await req.json();
     const accessToken = await getToken({ template: "supabase" });
 
@@ -81,7 +81,7 @@ export async function DELETE(
   { params }: { params: { collectionId: string } }
 ) {
   try {
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const accessToken = await getToken({ template: "supabase" });
 
     if (!accessToken) {

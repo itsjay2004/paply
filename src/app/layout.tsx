@@ -8,7 +8,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'Richie Reference',
+  title: 'Paply - Reference Manager',
   description: 'A reference manager for researchers.',
 };
 

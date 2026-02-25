@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
   try {
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const accessToken = await getToken({ template: "supabase" });
 
     if (!accessToken) {
@@ -41,7 +41,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { getToken, userId } = auth();
+    const { getToken, userId } = await auth();
     const { name } = await req.json();
     const accessToken = await getToken({ template: "supabase" });
 

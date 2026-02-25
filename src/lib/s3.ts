@@ -12,7 +12,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_PDF_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 
 function getS3Config() {
   const region = process.env.AWS_REGION;
@@ -66,7 +66,7 @@ export async function uploadPdfToS3(params: UploadPdfToS3Params): Promise<string
   const { userId, objectKeyId, file, contentType = 'application/pdf' } = params;
 
   if (file.length > MAX_PDF_SIZE_BYTES) {
-    throw new Error(`PDF must be 10 MB or smaller (got ${(file.length / 1024 / 1024).toFixed(2)} MB).`);
+    throw new Error(`PDF must be 100 MB or smaller (got ${(file.length / 1024 / 1024).toFixed(2)} MB).`);
   }
 
   const { bucket } = getS3Config();

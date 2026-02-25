@@ -133,7 +133,7 @@ AWS_S3_PDF_BUCKET=paply-pdfs-your-account-id
   - Method: `POST`.
   - Auth: require Clerk auth (e.g. `auth()` from `@clerk/nextjs/server`); reject if not signed in.
   - Body: `FormData` with a single file field (e.g. `file`), or JSON with a base64 PDF (if you keep the current client behavior and only add S3).
-  - Validate: file type `application/pdf`, size limit (e.g. 10 MB) to match the UI.
+  - Validate: file type `application/pdf`, size limit (e.g. 100 MB) to match the UI.
   - Generate a temporary id (e.g. `crypto.randomUUID()`) for the object key if the paper doesn’t exist yet.
   - Call the S3 upload helper with `userId` from Clerk, the temp id (or `paperId` if you create paper first), and the file buffer.
   - Return JSON: `{ pdfUrl: string, key?: string }` so the client can pass `pdfUrl` into the rest of the import flow.
@@ -178,7 +178,7 @@ AWS_S3_PDF_BUCKET=paply-pdfs-your-account-id
 
 - **Auth:** Every upload and S3 key must be scoped to the authenticated `userId` (Clerk).
 - **File type:** Allow only `application/pdf` (check `Content-Type` and/or magic bytes).
-- **Size:** Enforce a limit (e.g. 10 MB) in the API route and in the action.
+- **Size:** Enforce a limit (e.g. 100 MB) in the API route and in the action.
 - **Key sanitization:** Prevent path traversal in filenames; use a whitelist of characters for the filename part of the key.
 - **Rate limiting:** Consider rate limiting the upload endpoint to avoid abuse (e.g. Vercel or middleware).
 
@@ -209,7 +209,7 @@ AWS_S3_PDF_BUCKET=paply-pdfs-your-account-id
   - [ ] Ensure `import-dialog.tsx` passes the returned `pdfUrl` through to `onPaperImported` (no change if action already returns it).
   - [ ] Confirm POST `/api/papers` and PATCH `/api/papers/[id]` persist `pdf_url` (already implemented).
 - [ ] **Security**
-  - [ ] Validate PDF content type and size (e.g. 10 MB) in the action or upload route.
+  - [ ] Validate PDF content type and size (e.g. 100 MB) in the action or upload route.
   - [ ] Sanitize filename for S3 key; scope keys by `userId`.
 - [ ] **Optional**
   - [ ] Presigned read URL endpoint if bucket is private.

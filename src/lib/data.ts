@@ -24,7 +24,7 @@ export const papers: Paper[] = [
     collection_id: '1',
     collectionIds: ['1'],
     doi: '10.48550/arXiv.1706.03762',
-    publisher: 'Cornell University',
+    source: 'Cornell University',
   },
   {
     id: '2',
@@ -38,7 +38,7 @@ export const papers: Paper[] = [
     collection_id: '2',
     collectionIds: ['2'],
     doi: '10.1109/SFCS.1994.365700',
-    publisher: 'IEEE',
+    source: 'IEEE',
   },
   {
     id: '3',
@@ -52,6 +52,6 @@ export const papers: Paper[] = [
     collection_id: '1',
     collectionIds: ['1'],
     doi: '10.48550/arXiv.1406.2661',
-    publisher: 'Cornell University',
+    source: 'Cornell University',
   },
 ];

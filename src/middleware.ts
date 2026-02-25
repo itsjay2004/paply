@@ -1,7 +1,7 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-export default clerkMiddleware((auth, req) => {
+export default clerkMiddleware(async (_auth, req) => {
   // Webhooks are called by Clerk; they must be public (no auth)
   if (req.nextUrl.pathname.startsWith("/api/webhooks")) {
     return NextResponse.next();
