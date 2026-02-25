@@ -101,11 +101,13 @@ CREATE POLICY "Users can manage their own notes" ON notes
 FOR ALL USING ((auth.jwt()->>'sub') = user_id)
 WITH CHECK ((auth.jwt()->>'sub') = user_id);
 
--- Migration for existing DB: apply schema changes (run if papers table already exists)
+-- Migration for existing DB (run in Supabase SQL Editor if papers table already exists):
 -- Add new columns:
 --   ALTER TABLE papers ADD COLUMN IF NOT EXISTS source TEXT;
 --   ALTER TABLE papers ADD COLUMN IF NOT EXISTS paper_url TEXT;
--- Remove old columns (migrate data first if needed):
+--   ALTER TABLE papers ADD COLUMN IF NOT EXISTS landing_page_url TEXT;
+--   ALTER TABLE papers ADD COLUMN IF NOT EXISTS cited_by_count INTEGER;
+-- Remove old columns (optional, after adding new ones):
 --   ALTER TABLE papers DROP COLUMN IF EXISTS publisher;
 --   ALTER TABLE papers DROP COLUMN IF EXISTS publication_city;
 --   ALTER TABLE papers DROP COLUMN IF EXISTS publication_country;

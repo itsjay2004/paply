@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
 import type { Paper, Collection } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, Loader2, X, FileText, ChevronDown, ChevronUp, Trash2, Check, UploadCloud } from 'lucide-react';
+import { Sparkles, Loader2, X, FileText, ChevronDown, ChevronUp, Trash2, Check, UploadCloud, ExternalLink } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getSummary } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +16,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const SAVE_DEBOUNCE_MS = 600;
 
+/** URL field keys that should be rendered as links with an "Open" action */
+const LINK_FIELDS: (keyof Paper)[] = ['paperUrl', 'landingPageUrl', 'doi'];
+
+function isLinkField(field: keyof Paper): boolean {
+  return LINK_FIELDS.includes(field);
+}
+
+/** Resolve href for a link field (for the open/external link action). */
+function getLinkHref(paper: Paper, field: keyof Paper, value: string | null | undefined): string | null {
+  if (!value?.trim()) return null;
+  if (field === 'doi') return `https://doi.org/${value.trim()}`;
+  if (field === 'paperUrl' || field === 'landingPageUrl') {
+    const v = value.trim();
+    return v.startsWith('http://') || v.startsWith('https://') ? v : `https://${v}`;
+  }
+  return value.startsWith('http://') || value.startsWith('https://') ? value : null;
+}
+
 interface PaperDetailsPaneProps {
   paper: Paper;
   collections: Collection[];
@@ -26,11 +44,6 @@ interface PaperDetailsPaneProps {
   onClose: () => void;
 }
 
-/** Editable field wrapper: label + input, consistent styling */
-/**
- * Field is a styled wrapper for form inputs, providing a consistent label and 
- * spacing throughout the details pane.
- */
 function Field({
   label,
   id,
@@ -232,25 +245,22 @@ export function PaperDetailsPane({
       tags: undefined,
     });
 
-  // Dynamic list of metadata fields to render in the details grid
   const metadataFields: { label: string; field: keyof Paper; type?: 'number' | 'text' }[] = [
     { label: 'Publication year', field: 'year', type: 'number' },
     { label: 'Publication date', field: 'publication_date' },
-    { label: 'DOI', field: 'doi' },
     { label: 'Work type', field: 'typeOfWork' },
     { label: 'Language', field: 'language' },
     { label: 'Source', field: 'source' },
+    { label: 'Cited by count', field: 'citedByCount', type: 'number' },
+    { label: 'DOI', field: 'doi' },
     { label: 'Paper URL', field: 'paperUrl' },
     { label: 'Landing page URL', field: 'landingPageUrl' },
-    { label: 'Cited by count', field: 'citedByCount', type: 'number' },
-    { label: 'PDF URL', field: 'pdfUrl' },
   ];
 
   return (
     <div className="h-full w-full rounded-2xl bg-card border border-border/80 shadow-xl flex flex-col overflow-hidden">
-      <ScrollArea className="h-full flex-1">
-        {/* Top bar: Dynamic save indicator based on 'isSaving' and 'isDirty' states */}
-        <div className="sticky top-0 z-20 flex items-center justify-between border-b bg-card/95 backdrop-blur px-6 py-3">
+      {/* Top bar — always visible */}
+      <div className="shrink-0 flex items-center justify-between border-b bg-card/95 backdrop-blur px-4 py-2.5">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {isSaving && (
               <>
@@ -289,25 +299,25 @@ export function PaperDetailsPane({
           </div>
         </div>
 
-        <div className="p-6 md:p-8 space-y-8 max-w-2xl mx-auto">
-          {/* Main Content Area: High-level paper info (Title, Authors, Links, Collection) */}
-          <header className="space-y-4">
+      <header className="shrink-0 border-b border-border/60 bg-muted/5 px-4 py-4 space-y-4">
             <Field label="Title" id="title">
               <Textarea
                 id="title"
                 value={editedPaper.title ?? ''}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                className="text-xl md:text-2xl font-semibold leading-tight min-h-[2.5rem] resize-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-lg"
+                className="text-lg md:text-xl font-semibold leading-snug min-h-[2.5rem] resize-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-lg break-words [overflow-wrap:anywhere]"
                 placeholder="Paper title"
+                rows={3}
               />
             </Field>
             <Field label="Authors" id="authors">
-              <Input
+              <Textarea
                 id="authors"
                 value={(editedPaper.authors ?? []).join(', ')}
                 onChange={(e) => handleAuthorChange(e.target.value)}
-                className="bg-muted/50 border-border/60 focus-visible:ring-2 focus-visible:ring-primary/20"
+                className="min-h-[2.5rem] resize-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-lg text-sm leading-relaxed break-words [overflow-wrap:anywhere]"
                 placeholder="Author One, Author Two, …"
+                rows={2}
               />
             </Field>
 
@@ -329,8 +339,9 @@ export function PaperDetailsPane({
                     </a>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="rounded-lg gap-2">
-                    <a href={`/api/papers/${editedPaper.id}/pdf-url`} target="_blank" rel="noopener noreferrer">
-                      Open in new tab
+                    <a href={`/api/papers/${editedPaper.id}/pdf-url`} target="_blank" rel="noopener noreferrer" download>
+                      <ExternalLink className="h-4 w-4" />
+                      Download PDF
                     </a>
                   </Button>
                 </>
@@ -371,35 +382,48 @@ export function PaperDetailsPane({
                 </Select>
               </div>
             </div>
-          </header>
+      </header>
 
-          {/* Metadata Grid Area: Secondary paper details (DOI, Year, etc.) */}
-          <section className="rounded-xl border border-border/60 bg-muted/20 p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Details</h3>
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="p-4 md:p-6 space-y-6 max-w-2xl mx-auto">
+          <section className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-4">
+            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Details</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {metadataFields.map(({ label, field, type = 'text' }) => (
-                <Field key={field} label={label} id={field}>
-                  <Input
-                    id={field}
-                    type={type}
-                    value={
-                      type === 'number'
-                        ? ((): number | '' => {
-                          const v = (editedPaper as Record<string, unknown>)[field];
-                          return typeof v === 'number' ? v : '';
-                        })()
-                        : String((editedPaper as Record<string, unknown>)[field] ?? '')
-                    }
-                    onChange={(e) =>
-                      handleInputChange(
-                        field as keyof Paper,
-                        type === 'number' ? (e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0) : e.target.value
-                      )
-                    }
-                    className="bg-background border-border/60 focus-visible:ring-2 focus-visible:ring-primary/20 rounded-lg h-9"
-                  />
-                </Field>
-              ))}
+              {metadataFields.map(({ label, field, type = 'text' }) => {
+                const value = (editedPaper as Record<string, unknown>)[field];
+                const strValue = type === 'number' ? (typeof value === 'number' ? String(value) : '') : String(value ?? '');
+                const href = isLinkField(field) ? getLinkHref(editedPaper, field, strValue) : null;
+                return (
+                  <Field key={field} label={label} id={field}>
+                    <div className="flex gap-1.5 items-center min-w-0">
+                      <Input
+                        id={field}
+                        type={type}
+                        value={type === 'number' ? (typeof value === 'number' ? value : '') : strValue}
+                        onChange={(e) =>
+                          handleInputChange(
+                            field as keyof Paper,
+                            type === 'number' ? (e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0) : e.target.value
+                          )
+                        }
+                        className={cn(
+                          'flex-1 min-w-0 h-9 rounded-lg',
+                          isLinkField(field) && strValue
+                            ? 'text-primary underline decoration-primary/50 bg-transparent hover:bg-muted/30'
+                            : 'bg-background border-border/60 focus-visible:ring-2 focus-visible:ring-primary/20'
+                        )}
+                      />
+                      {href && (
+                        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-lg text-muted-foreground hover:text-primary" asChild>
+                          <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`Open ${label}`}>
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  </Field>
+                );
+              })}
             </div>
           </section>
 
