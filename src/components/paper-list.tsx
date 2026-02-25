@@ -115,23 +115,25 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper }: P
                     )}
                   </TableCell>
 
-                  {/* File Button */}
+                  {/* File Button – only when paper has a PDF */}
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="hover:bg-primary/10 hover:text-primary transition-colors"
-                      asChild
-                    >
-                      <a
-                        href={paper.pdfUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
+                    {paper.pdfUrl ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hover:bg-primary/10 hover:text-primary transition-colors"
+                        asChild
                       >
-                        <File className="w-4 h-4" />
-                      </a>
-                    </Button>
+                        <a
+                          href={`/api/papers/${paper.id}/pdf-url`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <File className="w-4 h-4" />
+                        </a>
+                      </Button>
+                    ) : null}
                   </TableCell>
 
                 </TableRow>

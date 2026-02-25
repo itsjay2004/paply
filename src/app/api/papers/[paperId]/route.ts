@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { getSupabase } from "@/lib/supabase";
+import { deletePdfFromS3, parseS3KeyFromPdfUrl } from "@/lib/s3";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -125,6 +126,19 @@ export async function DELETE(
     }
 
     const supabase = getSupabase(accessToken);
+
+    const { data: paper, error: fetchError } = await supabase
+      .from("papers")
+      .select("pdf_url")
+      .eq("id", params.paperId)
+      .single();
+
+    if (!fetchError && paper?.pdf_url) {
+      const s3Key = parseS3KeyFromPdfUrl(paper.pdf_url);
+      if (s3Key) {
+        await deletePdfFromS3(s3Key);
+      }
+    }
 
     const { error } = await supabase
       .from("papers")

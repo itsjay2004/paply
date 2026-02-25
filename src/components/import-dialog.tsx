@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, UploadCloud, FileText } from 'lucide-react';
-import { importPaperFromDoi, importPaperFromPdf } from '@/app/actions';
+import { importPaperFromDoi, importPaperFromPdfWithKey } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import type { Paper } from '@/lib/types';
 
@@ -66,17 +66,49 @@ export function ImportDialog({ open, onOpenChange, onPaperImported }: ImportDial
             toast({ variant: 'destructive', title: 'Error', description: 'Please select a PDF file.' });
             return;
           }
-          const pdfDataUri = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(pdfFile);
+          const MAX_PDF_BYTES = 10 * 1024 * 1024;
+          if (pdfFile.size > MAX_PDF_BYTES) {
+            toast({ variant: 'destructive', title: 'Error', description: 'PDF must be 10 MB or smaller.' });
+            return;
+          }
+          const res = await fetch('/api/upload-pdf/presigned-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ size: pdfFile.size }),
           });
-          paperDetails = await importPaperFromPdf({ pdfDataUri });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data?.error ?? 'Failed to get upload URL');
+          }
+          const { putUrl, key } = await res.json();
+          const putResponse = await fetch(putUrl, {
+            method: 'PUT',
+            body: pdfFile,
+            headers: { 'Content-Type': 'application/pdf' },
+          });
+          if (!putResponse.ok) {
+            throw new Error('Failed to upload PDF to storage');
+          }
+          paperDetails = await importPaperFromPdfWithKey({ key });
         }
 
         if (paperDetails) {
-            await onPaperImported(paperDetails);
+            const payload: Omit<Paper, 'id'> =
+              'pdfUrl' in paperDetails && paperDetails.pdfUrl !== undefined
+                ? (paperDetails as Omit<Paper, 'id'>)
+                : {
+                    title: paperDetails.title,
+                    authors: paperDetails.authors,
+                    year: paperDetails.year,
+                    abstract: paperDetails.abstract,
+                    doi: paperDetails.doi ?? null,
+                    publisher: 'journal' in paperDetails ? paperDetails.journal : undefined,
+                    pdfUrl: '',
+                    summary: [],
+                    tags: [],
+                    collectionIds: [],
+                  };
+            await onPaperImported(payload);
             toast({ title: 'Success', description: 'Paper imported successfully.' });
             handleOpenChange(false);
         }

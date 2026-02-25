@@ -1,9 +1,12 @@
 'use server';
 
+import { auth } from '@clerk/nextjs/server';
 import { abstractSummarizer } from '@/ai/flows/abstract-summarizer';
 import { explainText } from '@/ai/flows/text-explainer';
 import { fetchPaperDetailsFromDoi } from '@/ai/flows/fetch-paper-details-from-doi';
 import { extractPaperDetailsFromPdf } from '@/ai/flows/extract-paper-details-from-pdf';
+import { deletePdfFromS3, getPdfBufferFromS3, uploadPdfToS3 } from '@/lib/s3';
+import type { Paper } from '@/lib/types';
 import { z } from 'zod';
 
 const summarizeSchema = z.object({
@@ -66,19 +69,119 @@ export async function importPaperFromDoi(data: { doi: string }) {
 
 const importFromPdfSchema = z.object({
   pdfDataUri: z.string(),
+  filename: z.string().optional(),
 });
 
-export async function importPaperFromPdf(data: { pdfDataUri: string }) {
+/**
+ * Decode a data URI (e.g. data:application/pdf;base64,...) to a Buffer.
+ */
+function dataUriToBuffer(dataUri: string): Buffer {
+  const match = dataUri.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) {
+    throw new Error('Invalid PDF data URI format.');
+  }
+  return Buffer.from(match[2], 'base64');
+}
+
+/**
+ * Upload-first then extract (server receives PDF). Kept for fallback; prefer presigned flow.
+ */
+export async function importPaperFromPdf(
+  data: { pdfDataUri: string; filename?: string }
+): Promise<Omit<Paper, 'id'>> {
   const parsed = importFromPdfSchema.safeParse(data);
   if (!parsed.success) {
     throw new Error('Invalid input for PDF import.');
   }
 
+  const { userId } = auth();
+  if (!userId) {
+    throw new Error('You must be signed in to upload a PDF.');
+  }
+
   try {
-    const details = await extractPaperDetailsFromPdf({ pdfDataUri: parsed.data.pdfDataUri });
-    return details;
+    const buffer = dataUriToBuffer(parsed.data.pdfDataUri);
+    const objectKeyId = crypto.randomUUID();
+    const pdfUrl = await uploadPdfToS3({
+      userId,
+      objectKeyId,
+      file: buffer,
+      contentType: 'application/pdf',
+    });
+
+    const details = await extractPaperDetailsFromPdf({
+      pdfDataUri: parsed.data.pdfDataUri,
+    });
+
+    return {
+      title: details.title,
+      authors: details.authors,
+      year: details.year,
+      abstract: details.abstract,
+      doi: details.doi ?? null,
+      publisher: details.journal,
+      pdfUrl,
+      summary: [],
+      tags: [],
+      collectionIds: [],
+    };
   } catch (error) {
     console.error('Error importing from PDF:', error);
-    throw new Error('Failed to import paper from PDF.');
+    throw new Error(
+      error instanceof Error ? error.message : 'Failed to import paper from PDF.'
+    );
+  }
+}
+
+const importFromPdfKeySchema = z.object({
+  key: z.string().min(1).refine((k) => k.startsWith('uploads/'), 'Invalid key'),
+});
+
+/**
+ * Extract paper details from a PDF already in S3 (uploaded by client via presigned PUT).
+ * Verifies the key belongs to the current user. On extraction failure, deletes the orphan object.
+ */
+export async function importPaperFromPdfWithKey(
+  data: { key: string }
+): Promise<Omit<Paper, 'id'>> {
+  const parsed = importFromPdfKeySchema.safeParse(data);
+  if (!parsed.success) {
+    throw new Error('Invalid S3 key for PDF import.');
+  }
+
+  const { userId } = auth();
+  if (!userId) {
+    throw new Error('You must be signed in to import a PDF.');
+  }
+
+  const key = parsed.data.key;
+  const expectedPrefix = `uploads/${userId}/`;
+  if (!key.startsWith(expectedPrefix)) {
+    throw new Error('You do not have access to this upload.');
+  }
+
+  try {
+    const buffer = await getPdfBufferFromS3(key);
+    const pdfDataUri = `data:application/pdf;base64,${buffer.toString('base64')}`;
+    const details = await extractPaperDetailsFromPdf({ pdfDataUri });
+
+    return {
+      title: details.title,
+      authors: details.authors,
+      year: details.year,
+      abstract: details.abstract,
+      doi: details.doi ?? null,
+      publisher: details.journal,
+      pdfUrl: key,
+      summary: [],
+      tags: [],
+      collectionIds: [],
+    };
+  } catch (error) {
+    await deletePdfFromS3(key);
+    console.error('Error importing from PDF (S3 key):', error);
+    throw new Error(
+      error instanceof Error ? error.message : 'Failed to import paper from PDF.'
+    );
   }
 }

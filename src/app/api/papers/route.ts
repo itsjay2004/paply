@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { getErrorMessageWithHint } from "@/lib/api-error-message";
 import { getSupabase } from "@/lib/supabase";
 import { syncUserToSupabase } from "@/lib/sync-user-to-supabase";
 import { NextResponse } from "next/server";
@@ -9,7 +10,10 @@ export async function GET() {
     const accessToken = await getToken({ template: "supabase" });
 
     if (!accessToken) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized", details: "Supabase JWT not available. In Clerk Dashboard, add a Supabase JWT template and use it here." },
+        { status: 401 }
+      );
     }
 
     const supabase = getSupabase(accessToken);
@@ -17,14 +21,21 @@ export async function GET() {
     const { data: papers, error } = await supabase.from("papers").select("*");
 
     if (error) {
-      console.error("Error fetching papers:", error.message);
-      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+      console.error("Error fetching papers:", error.message, error);
+      return NextResponse.json(
+        { error: "Internal Server Error", details: error.message },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(papers);
   } catch (error) {
+    const message = getErrorMessageWithHint(error, "Supabase");
     console.error("[PAPERS_GET]", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error", details: message },
+      { status: 500 }
+    );
   }
 }
 

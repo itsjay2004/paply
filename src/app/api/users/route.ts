@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { getErrorMessageWithHint } from "@/lib/api-error-message";
 import { syncUserToSupabase } from "@/lib/sync-user-to-supabase";
+import { NextResponse } from "next/server";
 
 /**
  * Syncs Clerk user to public.users. Used by client (RichieWorkspace) and by Clerk webhook.
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ message: "User synced successfully" });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessageWithHint(error, "Supabase");
     console.error("[USERS_POST] Error:", error);
     return NextResponse.json(
       { error: "Failed to sync user", details: message },

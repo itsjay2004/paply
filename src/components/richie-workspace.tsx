@@ -42,6 +42,11 @@ import { cn } from '@/lib/utils';
 import { Sheet } from '@/components/ui/sheet';
 import { SignedIn, SignedOut, SignInButton, useUser } from '@clerk/nextjs';
 
+/**
+ * RichieWorkspaceLayout manages the primary UI structure including the sidebar, 
+ * header, and the main paper grid. It also handles the responsive floating pane
+ * for paper details.
+ */
 function RichieWorkspaceLayout({
   papers,
   collections,
@@ -75,10 +80,13 @@ function RichieWorkspaceLayout({
 
   const mainLayout = (
     <div className="flex h-screen w-full bg-background">
+      {/* Navigation Sidebar: Library, Collections, and Settings */}
       <Sidebar variant="sidebar" collapsible="icon" className="border-r bg-card">
         <LeftSidebarContent collections={collections} onCollectionCreate={onCollectionCreate} />
       </Sidebar>
+
       <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Top Header: Responsive trigger, Title, and User Actions */}
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:px-6 sticky top-0 z-30">
           <SidebarTrigger className="md:hidden" />
           <div className="flex-1">
@@ -86,6 +94,7 @@ function RichieWorkspaceLayout({
           </div>
           <div className="flex items-center gap-4">
             <SignedIn>
+              {/* Feature: Multi-method paper import */}
               <Button size="sm" className="gap-2" onClick={() => setImportDialogOpen(true)}>
                 <PlusCircle />
                 Import
@@ -99,6 +108,8 @@ function RichieWorkspaceLayout({
             </SignedOut>
           </div>
         </header>
+
+        {/* Main Content Area: Grid of paper cards */}
         <main
           className={cn('flex-1 grid overflow-hidden', 'grid-cols-1')}
         >
@@ -110,8 +121,8 @@ function RichieWorkspaceLayout({
           />
         </main>
       </div>
-      
-      {/* Floating Pane */}
+
+      {/* Floating Paper Details Pane: Reveals metadata and AI summary when a paper is selected */}
       <div
         className={cn(
           'fixed top-0 right-0 h-full w-full md:w-1/2 lg:w-[45%] xl:w-[40%] 2xl:w-[35%] transform-gpu transition-transform duration-300 ease-in-out z-40',
@@ -121,15 +132,15 @@ function RichieWorkspaceLayout({
         )}
       >
         {selectedPaper && (
-            <PaperDetailsPane
-                paper={selectedPaper}
-                collections={collections}
-                onSummaryUpdate={onSummaryUpdate}
-                onPaperUpdate={onPaperUpdate}
-                onPaperPersist={onPaperPersist}
-                onPaperDelete={onPaperDelete}
-                onClose={() => onSelectPaper(null)}
-            />
+          <PaperDetailsPane
+            paper={selectedPaper}
+            collections={collections}
+            onSummaryUpdate={onSummaryUpdate}
+            onPaperUpdate={onPaperUpdate}
+            onPaperPersist={onPaperPersist}
+            onPaperDelete={onPaperDelete}
+            onClose={() => onSelectPaper(null)}
+          />
         )}
       </div>
 
@@ -137,6 +148,7 @@ function RichieWorkspaceLayout({
     </div>
   );
 
+  // If on mobile, wrap the layout in a Sheet for better sidebar interaction
   if (isMobile) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile}>
@@ -148,6 +160,10 @@ function RichieWorkspaceLayout({
   return mainLayout;
 }
 
+/**
+ * RichieWorkspace is the root container for the application workspace.
+ * It handles global state management, authentication sync, and data fetching.
+ */
 export function RichieWorkspace() {
   const [papers, setPapers] = useState<Paper[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -156,7 +172,7 @@ export function RichieWorkspace() {
   const [isImportDialogOpen, setImportDialogOpen] = useState(false);
   const { user } = useUser(); // Use Clerk's useUser hook
 
-  // Effect to sync user data to Supabase (non-blocking; papers/collections APIs will sync if needed)
+  // Sync Clerk user profile to Supabase database for consistent user records
   useEffect(() => {
     const syncUser = async () => {
       if (!user) return;
@@ -174,16 +190,23 @@ export function RichieWorkspace() {
         if (!response.ok) {
           const body = await response.json().catch(() => ({}));
           const details = body?.details ?? body?.error ?? response.statusText;
-          console.warn('User sync to Supabase failed:', details);
+          const msg =
+            typeof details === 'string'
+              ? details
+              : typeof details === 'object' && details !== null
+                ? JSON.stringify(details)
+                : String(details);
+          console.warn('User sync to Supabase failed:', response.status, msg);
         }
       } catch (error) {
-        console.warn('User sync to Supabase failed:', error);
+        const msg = error instanceof Error ? error.message : String(error);
+        console.warn('User sync to Supabase failed:', msg);
       }
     };
     syncUser();
   }, [user]);
 
-  // Fetch papers and collections only once the user is available (avoids 401 on refresh)
+  // Initial data bootstrap: Fetch papers and collections from API
   useEffect(() => {
     if (!user) return;
 
@@ -195,7 +218,15 @@ export function RichieWorkspace() {
         ]);
 
         if (!papersRes.ok || !collectionsRes.ok) {
-          console.error('Fetch failed:', { papers: papersRes.status, collections: collectionsRes.status });
+          const papersErr = await papersRes.json().catch(() => ({ error: papersRes.statusText }));
+          const collectionsErr = await collectionsRes.json().catch(() => ({ error: collectionsRes.statusText }));
+          const papersDetail = papersErr?.details ?? papersErr?.error ?? papersRes.statusText;
+          const collectionsDetail = collectionsErr?.details ?? collectionsErr?.error ?? collectionsRes.statusText;
+          console.error(
+            'Fetch failed:',
+            `papers ${papersRes.status}: ${typeof papersDetail === 'string' ? papersDetail : JSON.stringify(papersDetail)}`,
+            `collections ${collectionsRes.status}: ${typeof collectionsDetail === 'string' ? collectionsDetail : JSON.stringify(collectionsDetail)}`
+          );
           return;
         }
 
@@ -211,6 +242,7 @@ export function RichieWorkspace() {
         setPapers(normalizedPapers);
         setCollections(collectionsArray);
 
+        // Pre-populate summaries to avoid re-summarizing existing papers
         const initialSummaries = papersArray.reduce((acc, paper: Record<string, unknown>) => {
           const id = typeof paper.id === 'string' ? paper.id : String(paper.id ?? '');
           const summary = paper.summary;
@@ -220,13 +252,17 @@ export function RichieWorkspace() {
         }, {} as Record<string, string[]>);
         setSummaries(initialSummaries);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('Error fetching data:', message, error);
       }
     };
 
     fetchData();
   }, [user?.id]);
 
+  /** 
+   * Updates a paper's AI summary in the database and local state. 
+   */
   const handleSummaryUpdate = async (paperId: string, summary: string[]) => {
     try {
       const response = await fetch(`/api/papers/${paperId}`, {
@@ -243,6 +279,9 @@ export function RichieWorkspace() {
     }
   };
 
+  /** 
+   * Updates a specific paper in the list state, and synchronizes selection if applicable.
+   */
   const handlePaperUpdate = (updatedPaper: Paper) => {
     setPapers((prevPapers) => prevPapers.map((p) => (p.id === updatedPaper.id ? updatedPaper : p)));
     if (selectedPaper && selectedPaper.id === updatedPaper.id) {
@@ -250,6 +289,9 @@ export function RichieWorkspace() {
     }
   };
 
+  /** 
+   * Persists paper metadata changes to the backend API.
+   */
   const handlePaperPersist = async (paperToSave: Paper) => {
     const response = await fetch(`/api/papers/${paperToSave.id}`, {
       method: 'PATCH',
@@ -279,6 +321,9 @@ export function RichieWorkspace() {
     handlePaperUpdate(updated);
   };
 
+  /** 
+   * Handles importing a new paper (via DOI or PDF) and adds it to the library.
+   */
   const handlePaperImport = async (newPaperData: Omit<Paper, 'id'>) => {
     const response = await fetch('/api/papers', {
       method: 'POST',
@@ -300,6 +345,9 @@ export function RichieWorkspace() {
     setImportDialogOpen(false);
   };
 
+  /** 
+   * Deletes a paper from the library and closes the details pane if needed.
+   */
   const handlePaperDelete = async (paperId: string) => {
     try {
       const response = await fetch(`/api/papers/${paperId}`, {
@@ -313,6 +361,9 @@ export function RichieWorkspace() {
     }
   };
 
+  /** 
+   * Creates a new user defined collection for organizing papers.
+   */
   const handleCollectionCreate = async (name: string) => {
     try {
       const response = await fetch('/api/collections', {

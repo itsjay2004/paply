@@ -27,6 +27,10 @@ interface PaperDetailsPaneProps {
 }
 
 /** Editable field wrapper: label + input, consistent styling */
+/**
+ * Field is a styled wrapper for form inputs, providing a consistent label and 
+ * spacing throughout the details pane.
+ */
 function Field({
   label,
   id,
@@ -48,6 +52,11 @@ function Field({
   );
 }
 
+/**
+ * PaperDetailsPane is a sliding panel that allows the user to view and edit 
+ * a specific paper's metadata. Features include auto-save, AI summarizing,
+ * and collection management.
+ */
 export function PaperDetailsPane({
   paper,
   collections,
@@ -65,12 +74,16 @@ export function PaperDetailsPane({
   const [lastPersisted, setLastPersisted] = useState<Paper | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Synchronize internal state when the selected paper changes from props
   useEffect(() => {
     setEditedPaper(paper);
     setIsAbstractExpanded(false);
     setLastPersisted(paper);
   }, [paper]);
 
+  /** 
+   * Triggers the persistent save to the backend. 
+   */
   const persist = useCallback(
     async (p: Paper) => {
       if (!p.id) return;
@@ -91,6 +104,10 @@ export function PaperDetailsPane({
     [onPaperPersist, toast]
   );
 
+  /** 
+   * Debounces the auto-save functionality to prevent excessive database writes 
+   * during rapid typing.
+   */
   const schedulePersist = useCallback(
     (p: Paper) => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -99,12 +116,16 @@ export function PaperDetailsPane({
     [persist]
   );
 
+  // Cleanup pending timeouts on component unmount
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
   }, []);
 
+  /** 
+   * Handles changes for basic metadata fields (Title, DOI, etc.).
+   */
   const handleInputChange = (field: keyof Paper, value: unknown) => {
     const processedValue = field === 'year' ? (typeof value === 'number' ? value : parseInt(String(value), 10) || 0) : value;
     const updatedPaper = { ...editedPaper, [field]: processedValue };
@@ -113,11 +134,17 @@ export function PaperDetailsPane({
     schedulePersist(updatedPaper);
   };
 
+  /** 
+   * Specialized handler for the authors list, converting a comma-separated string back to an array.
+   */
   const handleAuthorChange = (value: string) => {
     const authors = value.split(',').map((a) => a.trim()).filter(Boolean);
     handleInputChange('authors', authors);
   };
 
+  /** 
+   * Kicks off the Genkit AI flow to generate a summary based on the paper's abstract.
+   */
   const handleSummarize = () => {
     if (!paper) return;
     startSummaryTransition(async () => {
@@ -137,6 +164,10 @@ export function PaperDetailsPane({
 
   const isLongAbstract = (editedPaper.abstract?.length ?? 0) > 300;
 
+  /** 
+   * Determines if the user has made changes that are not yet saved to the server.
+   * Compares the current state against the 'lastPersisted' snapshot (ignoring ignored fields).
+   */
   const isDirty =
     lastPersisted == null ||
     JSON.stringify({
@@ -144,12 +175,13 @@ export function PaperDetailsPane({
       id: undefined,
       tags: undefined,
     }) !==
-      JSON.stringify({
-        ...lastPersisted,
-        id: undefined,
-        tags: undefined,
-      });
+    JSON.stringify({
+      ...lastPersisted,
+      id: undefined,
+      tags: undefined,
+    });
 
+  // Dynamic list of metadata fields to render in the details grid
   const metadataFields: { label: string; field: keyof Paper; type?: 'number' | 'text' }[] = [
     { label: 'Publication year', field: 'year', type: 'number' },
     { label: 'DOI', field: 'doi' },
@@ -164,7 +196,7 @@ export function PaperDetailsPane({
   return (
     <div className="h-full w-full rounded-2xl bg-card border border-border/80 shadow-xl flex flex-col overflow-hidden">
       <ScrollArea className="h-full flex-1">
-        {/* Top bar: save indicator + actions */}
+        {/* Top bar: Dynamic save indicator based on 'isSaving' and 'isDirty' states */}
         <div className="sticky top-0 z-20 flex items-center justify-between border-b bg-card/95 backdrop-blur px-6 py-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {isSaving && (
@@ -205,7 +237,7 @@ export function PaperDetailsPane({
         </div>
 
         <div className="p-6 md:p-8 space-y-8 max-w-2xl mx-auto">
-          {/* Title & authors */}
+          {/* Main Content Area: High-level paper info (Title, Authors, Links, Collection) */}
           <header className="space-y-4">
             <Field label="Title" id="title">
               <Textarea
@@ -229,13 +261,14 @@ export function PaperDetailsPane({
             <div className="flex flex-wrap gap-3 items-center pt-1">
               {editedPaper.pdfUrl && (
                 <Button asChild variant="outline" size="sm" className="rounded-lg gap-2">
-                  <a href={editedPaper.pdfUrl} target="_blank" rel="noopener noreferrer">
+                  <a href={`/api/papers/${editedPaper.id}/pdf-url`} target="_blank" rel="noopener noreferrer">
                     <FileText className="h-4 w-4" />
                     Open PDF
                   </a>
                 </Button>
               )}
               <div className="min-w-[200px]">
+                {/* Organize: Allow user to assign paper to a specific project collection */}
                 <Select
                   value={editedPaper.collection_id ?? '__none__'}
                   onValueChange={(value) => handleInputChange('collection_id', value === '__none__' ? null : value)}
@@ -256,7 +289,7 @@ export function PaperDetailsPane({
             </div>
           </header>
 
-          {/* Metadata card */}
+          {/* Metadata Grid Area: Secondary paper details (DOI, Year, etc.) */}
           <section className="rounded-xl border border-border/60 bg-muted/20 p-5 space-y-4">
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Details</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -268,9 +301,9 @@ export function PaperDetailsPane({
                     value={
                       type === 'number'
                         ? ((): number | '' => {
-                            const v = (editedPaper as Record<string, unknown>)[field];
-                            return typeof v === 'number' ? v : '';
-                          })()
+                          const v = (editedPaper as Record<string, unknown>)[field];
+                          return typeof v === 'number' ? v : '';
+                        })()
                         : String((editedPaper as Record<string, unknown>)[field] ?? '')
                     }
                     onChange={(e) =>
@@ -286,7 +319,7 @@ export function PaperDetailsPane({
             </div>
           </section>
 
-          {/* Abstract & summary */}
+          {/* AI Content Area: Paper abstract and AI-generated summary */}
           <section className="space-y-4">
             <div className="flex items-center justify-between gap-4">
               <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Abstract</h3>
@@ -306,6 +339,7 @@ export function PaperDetailsPane({
               </Button>
             </div>
 
+            {/* AI Summary: Rendered as a distinct high-light block if it exists */}
             {editedPaper.summary && editedPaper.summary.length > 0 && (
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Summary</p>
@@ -317,6 +351,7 @@ export function PaperDetailsPane({
               </div>
             )}
 
+            {/* Loading Indicator for AI summarization */}
             {(isSummarizing && (!editedPaper.summary || editedPaper.summary.length === 0)) && (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-full rounded" />
@@ -325,6 +360,7 @@ export function PaperDetailsPane({
               </div>
             )}
 
+            {/* Abstract Textarea: Expandable view for long text */}
             <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
               <Textarea
                 value={editedPaper.abstract ?? ''}
