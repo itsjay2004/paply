@@ -59,7 +59,8 @@ export async function importPaperFromDoi(data: { doi: string }) {
     return details;
   } catch (error) {
     console.error('Error importing from DOI:', error);
-    throw new Error('Failed to import paper from DOI.');
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to import paper from DOI: ${msg}`);
   }
 }
 

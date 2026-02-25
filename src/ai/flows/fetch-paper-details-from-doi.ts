@@ -19,7 +19,8 @@ const fetchFromCrossRefTool = ai.defineTool(
     },
     async ({ doi }) => {
         try {
-            const response = await fetch(`https://api.crossref.org/works/${doi}`);
+            const encodedDoi = encodeURIComponent(doi.trim());
+            const response = await fetch(`https://api.crossref.org/works/${encodedDoi}`);
             if (!response.ok) {
                 throw new Error(`Failed to fetch data from CrossRef: ${response.statusText}`);
             }

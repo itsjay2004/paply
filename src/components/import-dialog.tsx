@@ -21,7 +21,7 @@ import type { Paper } from '@/lib/types';
 interface ImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPaperImported: (paper: Omit<Paper, 'id'>) => void;
+  onPaperImported: (paper: Omit<Paper, 'id'>) => void | Promise<void>;
 }
 
 export function ImportDialog({ open, onOpenChange, onPaperImported }: ImportDialogProps) {
@@ -76,15 +76,16 @@ export function ImportDialog({ open, onOpenChange, onPaperImported }: ImportDial
         }
 
         if (paperDetails) {
-            onPaperImported(paperDetails);
+            await onPaperImported(paperDetails);
             toast({ title: 'Success', description: 'Paper imported successfully.' });
             handleOpenChange(false);
         }
       } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
         toast({
           variant: 'destructive',
           title: 'Import Error',
-          description: (error as Error).message || 'An unexpected error occurred during import.',
+          description: msg || 'An unexpected error occurred during import.',
         });
       }
     });

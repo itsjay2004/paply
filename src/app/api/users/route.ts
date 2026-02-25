@@ -24,10 +24,11 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ message: "User synced successfully" });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("[USERS_POST] Error:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: "Failed to sync user", details: message },
       { status: 500 }
     );
   }

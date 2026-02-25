@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { getSupabase } from "@/lib/supabase";
+import { syncUserToSupabase } from "@/lib/sync-user-to-supabase";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
@@ -29,33 +30,45 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { getToken } = auth();
+    const { getToken, userId } = auth();
     const { name } = await req.json();
     const accessToken = await getToken({ template: "supabase" });
 
-    if (!accessToken) {
+    if (!accessToken || !userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!name) {
+    if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
+
+    // Ensure user row exists so collection insert satisfies user_id FK
+    await syncUserToSupabase({ id: userId });
 
     const supabase = getSupabase(accessToken);
 
     const { data: collection, error } = await supabase
       .from("collections")
-      .insert([{ name }])
+      .insert([{ name: name.trim(), user_id: userId }])
       .select();
 
     if (error) {
       console.error("Error creating collection:", error.message);
-      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to create collection", details: error.message },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(collection);
   } catch (error) {
     console.error("[COLLECTIONS_POST]", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Internal Server Error",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
   }
 }
