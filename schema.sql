@@ -58,6 +58,16 @@ CREATE TABLE notes (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Notebook notes table (standalone notes, Tiptap JSON content)
+CREATE TABLE notebook_notes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE DEFAULT (auth.jwt()->>'sub'),
+    title TEXT,
+    content JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Create a function to update the updated_at timestamp
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()
 RETURNS TRIGGER AS $$
@@ -73,12 +83,19 @@ BEFORE UPDATE ON papers
 FOR EACH ROW
 EXECUTE PROCEDURE trigger_set_timestamp();
 
+-- Trigger for notebook_notes updated_at
+CREATE TRIGGER set_timestamp_notebook_notes
+BEFORE UPDATE ON notebook_notes
+FOR EACH ROW
+EXECUTE PROCEDURE trigger_set_timestamp();
+
 -- Enable Row Level Security for all tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE collections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE papers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE highlights ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notebook_notes ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies (Clerk third-party auth: use JWT 'sub' claim = Clerk user ID)
 CREATE POLICY "Users can manage their own data" ON users
@@ -98,6 +115,10 @@ FOR ALL USING ((auth.jwt()->>'sub') = user_id)
 WITH CHECK ((auth.jwt()->>'sub') = user_id);
 
 CREATE POLICY "Users can manage their own notes" ON notes
+FOR ALL USING ((auth.jwt()->>'sub') = user_id)
+WITH CHECK ((auth.jwt()->>'sub') = user_id);
+
+CREATE POLICY "Users can manage their own notebook_notes" ON notebook_notes
 FOR ALL USING ((auth.jwt()->>'sub') = user_id)
 WITH CHECK ((auth.jwt()->>'sub') = user_id);
 

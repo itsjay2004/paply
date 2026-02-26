@@ -43,6 +43,7 @@ import { UserNav } from '@/components/user-nav';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { ImportDialog } from './import-dialog';
+import { NotebookView } from './notebook-view';
 import { cn } from '@/lib/utils';
 import { Sheet } from '@/components/ui/sheet';
 import { SignedIn, SignedOut, SignInButton, useUser } from '@clerk/nextjs';
@@ -100,30 +101,34 @@ function RichieWorkspaceLayout({
         : papers;
 
   const headerTitle =
-    activeView === 'all'
-      ? 'All Papers'
-      : activeView === 'starred'
-        ? 'Starred'
-        : activeView === 'collection' && selectedCollectionId
-          ? collections.find((c) => c.id === selectedCollectionId)?.name ?? 'Collection'
-          : 'All Papers';
+    activeView === 'notebook'
+      ? 'Notebook'
+      : activeView === 'all'
+        ? 'All Papers'
+        : activeView === 'starred'
+          ? 'Starred'
+          : activeView === 'collection' && selectedCollectionId
+            ? collections.find((c) => c.id === selectedCollectionId)?.name ?? 'Collection'
+            : 'All Papers';
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
 
   const mainContent = (
     <>
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top Header: Responsive trigger, Title, and User Actions */}
-        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:px-6 sticky top-0 z-30">
+        <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-card px-4 lg:px-6 sticky top-0 z-30">
           <SidebarTrigger className="md:hidden" />
           <div className="flex-1">
             <h1 className="text-lg font-semibold tracking-tight">{headerTitle}</h1>
           </div>
           <div className="flex items-center gap-4">
             <SignedIn>
-              <Button size="sm" className="gap-2" onClick={() => setImportDialogOpen(true)}>
-                <PlusCircle />
-                Import
-              </Button>
+              {activeView !== 'notebook' && (
+                <Button size="sm" className="gap-2" onClick={() => setImportDialogOpen(true)}>
+                  <PlusCircle />
+                  Import
+                </Button>
+              )}
               <UserNav />
             </SignedIn>
             <SignedOut>
@@ -134,39 +139,47 @@ function RichieWorkspaceLayout({
           </div>
         </header>
 
-        {/* Main Content Area: Grid of paper cards */}
-        <main className={cn('flex-1 grid overflow-hidden', 'grid-cols-1')}>
-          <PaperList
-            papers={displayedPapers}
-            summaries={summaries}
-            selectedPaper={selectedPaper}
-            onSelectPaper={onSelectPaper}
-            onStarToggle={onStarToggle}
-          />
-        </main>
+        {activeView === 'notebook' ? (
+          <NotebookView />
+        ) : (
+          <>
+            {/* Main Content Area: Grid of paper cards */}
+            <main className={cn('flex-1 grid overflow-hidden', 'grid-cols-1')}>
+              <PaperList
+                papers={displayedPapers}
+                summaries={summaries}
+                selectedPaper={selectedPaper}
+                onSelectPaper={onSelectPaper}
+                onStarToggle={onStarToggle}
+              />
+            </main>
+          </>
+        )}
       </div>
 
-      {/* Floating Paper Details Pane */}
-      <div
-        className={cn(
-          'fixed top-0 right-0 h-full w-full md:w-1/2 lg:w-[45%] xl:w-[40%] 2xl:w-[35%] transform-gpu transition-transform duration-300 ease-in-out z-40',
-          'p-4',
-          selectedPaper ? 'translate-x-0' : 'translate-x-full',
-          !selectedPaper && 'pointer-events-none'
-        )}
-      >
-        {selectedPaper && (
-          <PaperDetailsPane
-            paper={selectedPaper}
-            collections={collections}
-            onSummaryUpdate={onSummaryUpdate}
-            onPaperUpdate={onPaperUpdate}
-            onPaperPersist={onPaperPersist}
-            onPaperDelete={onPaperDelete}
-            onClose={() => onSelectPaper(null)}
-          />
-        )}
-      </div>
+      {/* Floating Paper Details Pane (only when not in notebook view) */}
+      {activeView !== 'notebook' && (
+        <div
+          className={cn(
+            'fixed top-0 right-0 h-full w-full md:w-1/2 lg:w-[45%] xl:w-[40%] 2xl:w-[35%] transform-gpu transition-transform duration-300 ease-in-out z-40',
+            'p-4',
+            selectedPaper ? 'translate-x-0' : 'translate-x-full',
+            !selectedPaper && 'pointer-events-none'
+          )}
+        >
+          {selectedPaper && (
+            <PaperDetailsPane
+              paper={selectedPaper}
+              collections={collections}
+              onSummaryUpdate={onSummaryUpdate}
+              onPaperUpdate={onPaperUpdate}
+              onPaperPersist={onPaperPersist}
+              onPaperDelete={onPaperDelete}
+              onClose={() => onSelectPaper(null)}
+            />
+          )}
+        </div>
+      )}
 
       <ImportDialog open={isImportDialogOpen} onOpenChange={setImportDialogOpen} onPaperImported={onPaperImported} />
     </>

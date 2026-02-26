@@ -59,3 +59,13 @@ export type Note = {
   position: { pageIndex: number; x: number; y: number };
   created_at?: string;
 };
+
+/** Standalone notebook note (Tiptap JSON content). */
+export type NotebookNote = {
+  id: string;
+  user_id: string;
+  title: string | null;
+  content: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};

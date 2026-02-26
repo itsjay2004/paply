@@ -11,7 +11,7 @@ import {
   SidebarGroupContent,
 } from '@/components/ui/sidebar';
 import { Button } from './ui/button';
-import { BookOpenCheck, Folder, HelpCircle, Library, LogOut, Moon, Plus, Settings, Star, Sun, User } from 'lucide-react';
+import { BookMarked, BookOpenCheck, Folder, HelpCircle, Library, LogOut, Moon, Plus, Settings, Star, Sun, User } from 'lucide-react';
 import type { Collection } from '@/lib/types';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
 
 const HOVER_CLOSE_DELAY_MS = 150;
 
-export type SidebarView = 'all' | 'starred' | 'collection';
+export type SidebarView = 'all' | 'starred' | 'collection' | 'notebook';
 
 export function LeftSidebarContent({
   collections,
@@ -99,6 +99,16 @@ export function LeftSidebarContent({
             >
               <Star />
               <span>Starred</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={activeView === 'notebook'}
+              tooltip="Notebook"
+              onClick={() => onNavigate('notebook')}
+            >
+              <BookMarked />
+              <span>Notebook</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
