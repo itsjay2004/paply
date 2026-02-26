@@ -1,11 +1,9 @@
 'use server';
 /**
  * @fileOverview Fetches paper details from a DOI using the OpenAlex API.
- *
  * - fetchPaperDetailsFromDoi - Fetches paper metadata from OpenAlex (no AI).
- * - FetchPaperDetailsFromDoiInput - The input type for the function.
- * - FetchPaperDetailsFromDoiOutput - The return type for the function.
  */
+import { formatAuthorNames } from '@/lib/format-author-name';
 
 const OPENALEX_WORKS_BASE = 'https://api.openalex.org/works';
 
@@ -97,14 +95,14 @@ export async function fetchPaperDetailsFromDoi(
   const title =
     work.title ?? work.display_name ?? 'Title not found';
 
-  const authors: string[] = [];
+  const rawAuthors: string[] = [];
   if (Array.isArray(work.authorships)) {
     for (const a of work.authorships) {
-      const name =
-        a.author?.display_name ?? a.raw_author_name ?? '';
-      if (name.trim()) authors.push(name.trim());
+      const name = a.author?.display_name ?? a.raw_author_name ?? '';
+      if (name.trim()) rawAuthors.push(name.trim());
     }
   }
+  const authors = formatAuthorNames(rawAuthors);
 
   const pubDate = work.publication_date ?? undefined;
   const year =

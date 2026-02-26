@@ -63,6 +63,7 @@ function RichieWorkspaceLayout({
   isImportDialogOpen,
   setImportDialogOpen,
   onPaperImported,
+  embedded = false,
 }: {
   papers: Paper[];
   collections: Collection[];
@@ -77,16 +78,13 @@ function RichieWorkspaceLayout({
   isImportDialogOpen: boolean;
   setImportDialogOpen: (open: boolean) => void;
   onPaperImported: (paper: Omit<Paper, 'id'>) => void;
+  /** When true, sidebar is rendered by parent layout; only main content is rendered here. */
+  embedded?: boolean;
 }) {
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
 
-  const mainLayout = (
-    <div className="flex h-screen w-full bg-background">
-      {/* Navigation Sidebar: Library, Collections, and Settings */}
-      <Sidebar variant="sidebar" collapsible="icon" className="border-r bg-card">
-        <LeftSidebarContent collections={collections} onCollectionCreate={onCollectionCreate} />
-      </Sidebar>
-
+  const mainContent = (
+    <>
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top Header: Responsive trigger, Title, and User Actions */}
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:px-6 sticky top-0 z-30">
@@ -96,7 +94,6 @@ function RichieWorkspaceLayout({
           </div>
           <div className="flex items-center gap-4">
             <SignedIn>
-              {/* Feature: Multi-method paper import */}
               <Button size="sm" className="gap-2" onClick={() => setImportDialogOpen(true)}>
                 <PlusCircle />
                 Import
@@ -112,9 +109,7 @@ function RichieWorkspaceLayout({
         </header>
 
         {/* Main Content Area: Grid of paper cards */}
-        <main
-          className={cn('flex-1 grid overflow-hidden', 'grid-cols-1')}
-        >
+        <main className={cn('flex-1 grid overflow-hidden', 'grid-cols-1')}>
           <PaperList
             papers={papers}
             summaries={summaries}
@@ -124,7 +119,7 @@ function RichieWorkspaceLayout({
         </main>
       </div>
 
-      {/* Floating Paper Details Pane: Reveals metadata and AI summary when a paper is selected */}
+      {/* Floating Paper Details Pane */}
       <div
         className={cn(
           'fixed top-0 right-0 h-full w-full md:w-1/2 lg:w-[45%] xl:w-[40%] 2xl:w-[35%] transform-gpu transition-transform duration-300 ease-in-out z-40',
@@ -147,10 +142,22 @@ function RichieWorkspaceLayout({
       </div>
 
       <ImportDialog open={isImportDialogOpen} onOpenChange={setImportDialogOpen} onPaperImported={onPaperImported} />
+    </>
+  );
+
+  if (embedded) {
+    return mainContent;
+  }
+
+  const mainLayout = (
+    <div className="flex h-screen w-full bg-background">
+      <Sidebar variant="sidebar" collapsible="icon" className="border-r bg-card">
+        <LeftSidebarContent collections={collections} onCollectionCreate={onCollectionCreate} />
+      </Sidebar>
+      {mainContent}
     </div>
   );
 
-  // If on mobile, wrap the layout in a Sheet for better sidebar interaction
   if (isMobile) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile}>
@@ -165,8 +172,9 @@ function RichieWorkspaceLayout({
 /**
  * RichieWorkspace is the root container for the application workspace.
  * It handles global state management, authentication sync, and data fetching.
+ * When embedded is true, sidebar is provided by the parent (e.g. dashboard layout).
  */
-export function RichieWorkspace() {
+export function RichieWorkspace({ embedded = false }: RichieWorkspaceProps = {}) {
   const [papers, setPapers] = useState<Paper[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
@@ -390,23 +398,27 @@ export function RichieWorkspace() {
     }
   };
 
-  return (
-    <SidebarProvider>
-      <RichieWorkspaceLayout
-        papers={papers}
-        collections={collections}
-        summaries={summaries}
-        selectedPaper={selectedPaper}
-        onSelectPaper={setSelectedPaper}
-        onSummaryUpdate={handleSummaryUpdate}
-        onPaperUpdate={handlePaperUpdate}
-        onPaperPersist={handlePaperPersist}
-        onPaperDelete={handlePaperDelete}
-        onCollectionCreate={handleCollectionCreate}
-        isImportDialogOpen={isImportDialogOpen}
-        setImportDialogOpen={setImportDialogOpen}
-        onPaperImported={handlePaperImport}
-      />
-    </SidebarProvider>
+  const layout = (
+    <RichieWorkspaceLayout
+      papers={papers}
+      collections={collections}
+      summaries={summaries}
+      selectedPaper={selectedPaper}
+      onSelectPaper={setSelectedPaper}
+      onSummaryUpdate={handleSummaryUpdate}
+      onPaperUpdate={handlePaperUpdate}
+      onPaperPersist={handlePaperPersist}
+      onPaperDelete={handlePaperDelete}
+      onCollectionCreate={handleCollectionCreate}
+      isImportDialogOpen={isImportDialogOpen}
+      setImportDialogOpen={setImportDialogOpen}
+      onPaperImported={handlePaperImport}
+      embedded={embedded}
+    />
   );
+
+  if (embedded) return layout;
+  return <SidebarProvider>{layout}</SidebarProvider>;
 }
+
+export type RichieWorkspaceProps = { embedded?: boolean };

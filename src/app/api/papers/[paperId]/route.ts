@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { getSupabase } from "@/lib/supabase";
 import { deletePdfFromS3, parseS3KeyFromPdfUrl } from "@/lib/s3";
+import { formatAuthorNames } from "@/lib/format-author-name";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -59,7 +60,8 @@ function mapBodyToPaperUpdate(body: Record<string, unknown>) {
 
   const out: Record<string, unknown> = {};
   if (body.title !== undefined) out.title = typeof body.title === "string" ? body.title : "";
-  if (body.authors !== undefined) out.authors = Array.isArray(body.authors) ? body.authors : null;
+  if (body.authors !== undefined)
+    out.authors = Array.isArray(body.authors) ? formatAuthorNames(body.authors as string[]) : null;
   if (publicationDate !== undefined) out.publication_date = publicationDate;
   if (body.doi !== undefined) out.doi = typeof body.doi === "string" ? body.doi : null;
   if (body.abstract !== undefined) out.abstract = typeof body.abstract === "string" ? body.abstract : null;

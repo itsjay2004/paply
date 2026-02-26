@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getErrorMessageWithHint } from "@/lib/api-error-message";
 import { getSupabase } from "@/lib/supabase";
 import { syncUserToSupabase } from "@/lib/sync-user-to-supabase";
+import { formatAuthorNames } from "@/lib/format-author-name";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -62,7 +63,9 @@ function mapBodyToPaperRow(body: Record<string, unknown>, userId: string) {
     user_id: userId,
     collection_id: (collectionId != null && collectionId !== "") ? String(collectionId) : null,
     title: typeof body.title === "string" ? body.title : "",
-    authors: Array.isArray(body.authors) ? body.authors : (body.authors ?? null),
+    authors: Array.isArray(body.authors)
+      ? formatAuthorNames(body.authors as string[])
+      : (body.authors ?? null),
     publication_date: publicationDate ?? null,
     doi: typeof body.doi === "string" ? body.doi : null,
     abstract: typeof body.abstract === "string" ? body.abstract : null,
