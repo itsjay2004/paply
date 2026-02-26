@@ -1,7 +1,10 @@
 'use client';
 
 import { SignInButton } from '@clerk/nextjs';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import Image from 'next/image';
 import {
   Search,
   Sparkles,
@@ -16,211 +19,401 @@ import {
   PenLine,
   Github,
   ArrowRight,
-  BookOpenCheck,
+  Sun,
+  Moon,
 } from 'lucide-react';
+import { useEffect, useState } from "react";
+
 
 export function SignedOutLanding() {
+  const { resolvedTheme, setTheme } = useTheme();
+
+  const [scrolled, setScrolled] = useState(false);
+
+useEffect(() => {
+  const handleScroll = () => {
+    setScrolled(window.scrollY > 10);
+  };
+
+  window.addEventListener("scroll", handleScroll);
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Floating nav bar */}
-      <div className="sticky top-0 z-50 p-4 sm:p-5">
-        <header className="mx-auto flex h-14 max-w-6xl items-center justify-between rounded-2xl border border-border/60 bg-card px-5 shadow-md backdrop-blur supports-[backdrop-filter]:bg-card/95">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <BookOpenCheck className="size-5" aria-hidden />
-            </div>
-            <span className="font-semibold text-foreground">Paply</span>
-          </div>
-          <SignInButton mode="modal">
-            <Button variant="secondary" size="sm" className="rounded-lg">
-              Sign in
-            </Button>
-          </SignInButton>
-        </header>
+    <div className="relative min-h-screen bg-background overflow-hidden">
+
+      {/* Subtle Grid Background */}
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgba(91,76,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(91,76,255,0.06)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#5B4CFF]/10 via-transparent to-[#00A3C4]/10" />
+
+{/* Floating Glass Navbar */}
+<div className="sticky top-6 z-50 px-4">
+  <div className="mx-auto max-w-6xl">
+    <header className="relative flex h-16 items-center justify-between rounded-2xl border border-white/10 bg-background/60 px-6 shadow-2xl backdrop-blur-xl">
+
+      {/* Subtle Gradient Border Glow */}
+      <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-r from-[#5B4CFF]/20 via-transparent to-[#00A3C4]/20 opacity-60 blur-xl" />
+
+      {/* Logo */}
+      <Image
+        src="/logo/logo-full.png"
+        alt="Paply"
+        width={120}
+        height={40}
+        className="size-24 rounded-lg object-contain"
+        priority
+      />
+
+      {/* Right Side */}
+      <div className="flex items-center gap-4">
+
+        {/* Theme Toggle */}
+        <div className="flex items-center rounded-xl border border-border/50 bg-background/50 p-1 backdrop-blur-md">
+          <button
+            onClick={() => setTheme('light')}
+            className={cn(
+              'flex h-9 w-9 items-center justify-center rounded-lg transition-all',
+              resolvedTheme === 'light'
+                ? 'bg-white shadow-md'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Sun className="size-4" />
+          </button>
+
+          <button
+            onClick={() => setTheme('dark')}
+            className={cn(
+              'flex h-9 w-9 items-center justify-center rounded-lg transition-all',
+              (resolvedTheme ?? 'dark') === 'dark'
+                ? 'bg-white shadow-md'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Moon className="size-4" />
+          </button>
+        </div>
+
+        {/* Sign In Button */}
+        <SignInButton mode="modal">
+          <Button className="rounded-xl bg-[#5B4CFF] hover:bg-[#4a3de0] shadow-lg shadow-[#5B4CFF]/30 px-6">
+            Sign in
+          </Button>
+        </SignInButton>
+
       </div>
+    </header>
+  </div>
+</div>
 
       {/* Hero */}
-      <section className="relative overflow-hidden px-4 pt-16 pb-24 sm:pt-24 sm:pb-32">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,hsl(var(--primary)/0.15),transparent)] pointer-events-none" />
-        <div className="relative mx-auto max-w-4xl text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl bg-clip-text">
-            Your Research, Reimagined
+      <section className="relative px-4 pt-32 sm:pt-36 pb-32 text-center">
+        <div className="mx-auto max-w-4xl">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight bg-gradient-to-r from-[#5B4CFF] to-[#00A3C4] bg-clip-text text-transparent">
+            Research Without Friction
           </h1>
-          <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto sm:text-xl leading-relaxed">
-            The open-source, AI-powered reference manager built for the modern scholar. Organize, annotate, and summarize your library in one secure workspace.
+          <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            Paply is the modern AI-powered reference manager built for serious researchers. 
+            Organize, annotate, and synthesize your work in one intelligent workspace.
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+
+          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-5">
             <SignInButton mode="modal">
-              <Button size="lg" className="min-w-[200px] gap-2 text-base">
-                Get Started for Free
+              <Button
+                size="lg"
+                className="min-w-[220px] text-base rounded-xl bg-[#5B4CFF] hover:bg-[#4a3de0] shadow-xl shadow-[#5B4CFF]/30 gap-2"
+              >
+                Get Started Free
                 <ArrowRight className="size-4" />
               </Button>
             </SignInButton>
+
             <Button
-              variant="outline"
               size="lg"
-              className="min-w-[200px] gap-2 text-base"
+              variant="outline"
+              className="min-w-[220px] rounded-xl border-[#00A3C4]/40 hover:bg-[#00A3C4]/10 hover:text-slate-900 dark:hover:text-white gap-2"
               asChild
             >
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer">
+              <a href="https://github.com/itsjay2004/paply" target="_blank">
                 <Github className="size-5" />
                 View on GitHub
               </a>
             </Button>
           </div>
         </div>
+
+        {/* Glow Orbs */}
+        <div className="absolute -top-20 -left-20 h-72 w-72 bg-[#5B4CFF]/20 blur-3xl rounded-full" />
+        <div className="absolute bottom-0 right-0 h-72 w-72 bg-[#00A3C4]/20 blur-3xl rounded-full" />
       </section>
 
-      {/* Core Four */}
-      <section className="border-t border-border/60 bg-muted/20 py-16 px-4">
-        <div className="mx-auto max-w-6xl">
-          <h2 className="text-2xl font-bold text-center text-foreground sm:text-3xl mb-12">
-            Everything you need in one place
-          </h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                icon: Search,
-                title: 'Smart Search & Sync',
-                desc: 'Find papers by DOI or title. Rich metadata, abstracts, and citations fetched automatically.',
-              },
-              {
-                icon: Sparkles,
-                title: 'AI-Powered Insights',
-                desc: 'Generate narrative summaries that explain context, methods, and conclusions in seconds.',
-              },
-              {
-                icon: FileText,
-                title: 'Advanced PDF Engine',
-                desc: 'View, highlight, and annotate PDFs in-browser. Notes sync to your account everywhere.',
-              },
-              {
-                icon: BookOpen,
-                title: 'Dedicated Notebook',
-                desc: 'Connect highlights to a workspace and synthesize findings into your own work.',
-              },
-            ].map(({ icon: Icon, title, desc }) => (
-              <div
-                key={title}
-                className="rounded-xl border border-border/60 bg-card p-6 shadow-sm transition-shadow hover:shadow-md"
-              >
-                <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Icon className="size-5" />
-                </div>
-                <h3 className="mt-4 font-semibold text-foreground">{title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{desc}</p>
-              </div>
-            ))}
+
+      {/* Core Features */}
+<section id="features" className="relative py-28 px-4 overflow-hidden scroll-mt-24">
+  <div className="absolute inset-0 bg-gradient-to-br from-[#5B4CFF]/5 via-transparent to-[#00A3C4]/5" />
+  <div className="relative mx-auto max-w-6xl">
+    <div className="text-center mb-16">
+      <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+        Everything you need in one workspace
+      </h2>
+      <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
+        Powerful research tools designed for serious academic work.
+      </p>
+    </div>
+
+    <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      {[
+        {
+          icon: Search,
+          title: 'Smart Search & Sync',
+          desc: 'Fetch metadata, abstracts, and citations instantly via DOI or title.',
+        },
+        {
+          icon: Sparkles,
+          title: 'AI-Powered Insights',
+          desc: 'Generate contextual summaries covering methods and conclusions.',
+        },
+        {
+          icon: FileText,
+          title: 'Advanced PDF Engine',
+          desc: 'Highlight, annotate, and sync your research across devices.',
+        },
+        {
+          icon: BookOpen,
+          title: 'Dedicated Notebook',
+          desc: 'Turn highlights into structured academic writing.',
+        },
+      ].map(({ icon: Icon, title, desc }) => (
+        <div
+          key={title}
+          className="group rounded-3xl border border-border/60 bg-background/70 backdrop-blur-xl p-8 shadow-md hover:shadow-2xl transition-all duration-300"
+        >
+          <div className="flex size-12 items-center justify-center rounded-xl bg-[#5B4CFF]/10 text-[#5B4CFF] group-hover:bg-[#5B4CFF] group-hover:text-white group-hover:scale-110 transition-all duration-300">
+            <Icon className="size-6" />
           </div>
+          <h3 className="mt-6 text-lg font-semibold">{title}</h3>
+          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+            {desc}
+          </p>
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
 
-      {/* Why Paply */}
-      <section className="py-16 px-4">
-        <div className="mx-auto max-w-6xl">
-          <h2 className="text-2xl font-bold text-center text-foreground sm:text-3xl mb-12">
-            Why Paply?
-          </h2>
-          <div className="grid gap-6 md:grid-cols-3">
-            {[
-              {
-                icon: Lock,
-                title: 'Open-Source & Transparent',
-                desc: 'Research tools as open as the science they support. No hidden tracking, no lock-ins.',
-              },
-              {
-                icon: Shield,
-                title: 'Privacy-First Security',
-                desc: 'Private storage and verified auth. Your papers are encrypted and visible only to you.',
-              },
-              {
-                icon: Database,
-                title: 'Generous Free Storage',
-                desc: '500MB free—enough for 250–300 papers. Get started without a credit card.',
-              },
-            ].map(({ icon: Icon, title, desc }) => (
-              <div
-                key={title}
-                className="rounded-xl border border-border/60 bg-gradient-to-b from-card to-muted/30 p-6"
-              >
-                <div className="flex size-11 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                  <Icon className="size-5" />
-                </div>
-                <h3 className="mt-4 font-semibold text-foreground">{title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{desc}</p>
-              </div>
-            ))}
+{/* Why Paply */}
+<section id="why-us" className="relative py-28 px-4 scroll-mt-24">
+  <div className="mx-auto max-w-6xl">
+    <div className="text-center mb-16">
+      <h2 className="text-3xl sm:text-4xl font-bold">
+        Built for modern researchers
+      </h2>
+      <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
+        Transparent, secure, and designed with academic workflows in mind.
+      </p>
+    </div>
+
+    <div className="grid gap-8 md:grid-cols-3">
+      {[
+        {
+          icon: Lock,
+          title: 'Open-Source & Transparent',
+          desc: 'No hidden tracking, no lock-ins. Built for the research community.',
+        },
+        {
+          icon: Shield,
+          title: 'Privacy-First Security',
+          desc: 'Your library is encrypted and accessible only to you.',
+        },
+        {
+          icon: Database,
+          title: 'Generous Free Storage',
+          desc: '500MB free — enough for 250+ research papers.',
+        },
+      ].map(({ icon: Icon, title, desc }) => (
+        <div
+          key={title}
+          className="group relative rounded-3xl p-8 bg-gradient-to-br from-[#5B4CFF]/10 to-[#00A3C4]/10 border border-border backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300"
+        >
+          <div className="flex size-12 items-center justify-center rounded-xl bg-[#00A3C4]/15 text-[#00A3C4] group-hover:scale-110 group-hover:bg-[#00A3C4]/25 transition-all duration-300">
+            <Icon className="size-6" />
           </div>
+          <h3 className="mt-6 font-semibold text-lg">{title}</h3>
+          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+            {desc}
+          </p>
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
 
-      {/* Workflow */}
-      <section className="border-t border-border/60 bg-muted/20 py-16 px-4">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="text-2xl font-bold text-center text-foreground sm:text-3xl mb-12">
-            From search to summary
-          </h2>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { icon: Upload, step: 'Import', text: 'Drop a PDF or search by DOI to populate your library.' },
-              { icon: FolderOpen, step: 'Organize', text: 'Tag and categorize with an intuitive folder system.' },
-              { icon: Highlighter, step: 'Annotate', text: 'Highlight and add notes in the high-fidelity viewer.' },
-              { icon: PenLine, step: 'Synthesize', text: 'Use AI summaries and the Notebook to build your thesis.' },
-            ].map(({ icon: Icon, step, text }) => (
-              <div key={step} className="text-center">
-                <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/15 text-primary font-semibold ring-2 ring-primary/20">
-                  <Icon className="size-6" />
-                </div>
-                <p className="mt-3 font-semibold text-foreground">{step}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{text}</p>
-              </div>
-            ))}
+{/* Workflow */}
+<section id="workflow" className="relative py-28 px-4 border-t border-border/50 scroll-mt-24">
+  <div className="mx-auto max-w-5xl">
+    <div className="text-center mb-16">
+      <h2 className="text-3xl sm:text-4xl font-bold">
+        From search to synthesis
+      </h2>
+      <p className="mt-4 text-muted-foreground">
+        A seamless research workflow in four steps.
+      </p>
+    </div>
+
+    <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4 text-center">
+      {[
+        { icon: Upload, step: 'Import', text: 'Upload a PDF or search by DOI.' },
+        { icon: FolderOpen, step: 'Organize', text: 'Tag and categorize effortlessly.' },
+        { icon: Highlighter, step: 'Annotate', text: 'Highlight and add contextual notes.' },
+        { icon: PenLine, step: 'Synthesize', text: 'Generate summaries and build your thesis.' },
+      ].map(({ icon: Icon, step, text }) => (
+        <div key={step} className="relative group">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-[#5B4CFF]/15 text-[#5B4CFF] ring-4 ring-[#5B4CFF]/10 shadow-lg group-hover:scale-110 group-hover:ring-[#5B4CFF]/25 transition-all duration-300">
+            <Icon className="size-7" />
           </div>
+          <h4 className="mt-6 font-semibold text-lg">{step}</h4>
+          <p className="mt-2 text-sm text-muted-foreground">{text}</p>
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
 
-      {/* Final CTA */}
-      <section className="py-20 px-4">
-        <div className="mx-auto max-w-2xl text-center">
-          <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-10 shadow-lg">
-            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">
-              Ready to upgrade your workflow?
+
+      {/* CTA */}
+      <section id="cta" className="px-4 pb-28 scroll-mt-24">
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="rounded-3xl p-12 bg-gradient-to-br from-[#5B4CFF]/15 to-[#00A3C4]/15 border border-border backdrop-blur-xl shadow-xl">
+            <h2 className="text-3xl font-bold">
+              Ready to upgrade your research workflow?
             </h2>
-            <p className="mt-3 text-muted-foreground">
-              Join researchers who have simplified their literature reviews.
+            <p className="mt-4 text-muted-foreground">
+              Simplify literature reviews and boost your productivity with Paply.
             </p>
+
             <SignInButton mode="modal">
-              <Button size="lg" className="mt-6 min-w-[220px] text-base">
-                Create Your Free Account
+              <Button
+                size="lg"
+                className="mt-8 min-w-[240px] rounded-xl bg-[#5B4CFF] hover:bg-[#4a3de0] shadow-xl shadow-[#5B4CFF]/30"
+              >
+                Create Free Account
               </Button>
             </SignInButton>
+
             <p className="mt-4 text-xs text-muted-foreground">
-              No credit card required. 500MB free storage included.
+              No credit card required · 500MB free storage
             </p>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-muted/30 py-8 px-4">
-        <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Paply. Open-source reference manager for researchers.
-          </p>
-          <div className="flex items-center gap-6">
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5"
-            >
-              <Github className="size-4" />
-              GitHub
+     {/* Footer */}
+<footer className="relative border-t border-border/50 bg-background/80 backdrop-blur-xl">
+  
+  {/* Subtle Top Glow */}
+  <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-[#5B4CFF]/60 to-transparent" />
+
+  <div className="mx-auto max-w-6xl px-4 py-16">
+    
+    <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+      
+      {/* Brand */}
+      <div>
+        <h3 className="text-lg font-semibold tracking-tight bg-gradient-to-r from-[#5B4CFF] to-[#00A3C4] bg-clip-text text-transparent">
+        <Image
+        src="/logo/logo-full.png"
+        alt="Paply"
+        width={120}
+        height={40}
+        className="size-24 rounded-lg object-contain"
+        priority
+      />
+        </h3>
+        <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
+          Open-source, AI-powered reference manager built for modern researchers.
+        </p>
+        <p className="mt-4 text-xs text-muted-foreground">
+          Made with ❤️ for the research community.
+        </p>
+      </div>
+
+      {/* Product */}
+      <div>
+        <h4 className="text-sm font-semibold mb-4">Product</h4>
+        <ul className="space-y-3 text-sm text-muted-foreground">
+          <li>
+            <a href="#features" className="hover:text-[#5B4CFF] transition">
+              Features
             </a>
-          </div>
+          </li>
+          <li>
+            <a href="#why-us" className="hover:text-[#5B4CFF] transition">
+              Why Us
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/itsjay2004/paply" target="_blank" rel="noopener noreferrer" className="hover:text-[#5B4CFF] transition">
+              Open Source
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      {/* Legal */}
+      <div>
+        <h4 className="text-sm font-semibold mb-4">Legal</h4>
+        <ul className="space-y-3 text-sm text-muted-foreground">
+          <li>
+            <a href="#cta" className="hover:text-[#5B4CFF] transition">
+              Terms of Service
+            </a>
+          </li>
+          <li>
+            <a href="#cta" className="hover:text-[#5B4CFF] transition">
+              Privacy Policy
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      {/* Contact */}
+      <div>
+        <h4 className="text-sm font-semibold mb-4">Contact</h4>
+        <p className="text-sm text-muted-foreground">
+          Questions or feedback?
+        </p>
+        <a
+          href="mailto:itsjaybauri233@gmail.com"
+          className="mt-3 inline-block text-sm font-medium text-[#00A3C4] hover:text-[#5EE7F7] transition"
+        >
+          itsjaybauri1233@gmail.com
+        </a>
+
+        <div className="mt-6 flex items-center gap-4 text-muted-foreground">
+          <a
+            href="https://github.com/itsjay2004/paply"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-lg hover:text-[#5B4CFF] hover:bg-[#5B4CFF]/10 hover:scale-110 transition-all duration-200"
+          >
+            <Github className="size-5" />
+          </a>
         </div>
-      </footer>
+      </div>
+    </div>
+
+    {/* Bottom Row */}
+    <div className="mt-16 pt-8 border-t border-border/50 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
+      <p>
+        © {new Date().getFullYear()} Paply. All rights reserved.
+      </p>
+      <p>
+        Built for researchers, by a researcher.
+      </p>
+    </div>
+
+  </div>
+</footer>
     </div>
   );
 }

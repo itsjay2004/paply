@@ -10,8 +10,9 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
 } from '@/components/ui/sidebar';
+import Image from 'next/image';
 import { Button } from './ui/button';
-import { BookMarked, BookOpenCheck, Folder, HelpCircle, Library, LogOut, Moon, Plus, Settings, Star, Sun, User } from 'lucide-react';
+import { BookMarked, Folder, HelpCircle, Library, LogOut, Moon, Plus, Settings, Star, Sun, User } from 'lucide-react';
 import type { Collection } from '@/lib/types';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
@@ -73,9 +74,13 @@ export function LeftSidebarContent({
     <>
       <SidebarHeader>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="shrink-0">
-            <BookOpenCheck className="size-5 text-primary" />
-          </Button>
+          <Image
+            src="/logo/logo-full.png"
+            alt="Paply"
+            width={750}
+            height={750}
+            className="size-20 shrink-0 rounded-lg object-contain"
+          />
           <span className="text-lg font-semibold tracking-tight">Richie</span>
         </div>
       </SidebarHeader>
