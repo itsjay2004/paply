@@ -86,7 +86,7 @@ useEffect(() => {
             className={cn(
               'flex h-9 w-9 items-center justify-center rounded-lg transition-all',
               (resolvedTheme ?? 'dark') === 'dark'
-                ? 'bg-white shadow-md'
+                ? 'bg-muted shadow-md'
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >

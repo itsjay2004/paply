@@ -206,8 +206,8 @@ export function NotebookView() {
                 <div
                   key={note.id}
                   className={cn(
-                    'group flex items-start gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent',
-                    isSelected && 'bg-accent'
+                    'group flex items-start gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted',
+                    isSelected && 'bg-muted'
                   )}
                 >
                   <button

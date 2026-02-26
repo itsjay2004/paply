@@ -73,15 +73,14 @@ export function LeftSidebarContent({
   return (
     <>
       <SidebarHeader>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center px-1 py-2">
           <Image
             src="/logo/logo-full.png"
             alt="Paply"
-            width={750}
-            height={750}
-            className="size-20 shrink-0 rounded-lg object-contain"
+            width={140}
+            height={40}
+            className="h-12 w-auto max-w-full shrink-0 rounded-lg object-contain object-left"
           />
-          <span className="text-lg font-semibold tracking-tight">Richie</span>
         </div>
       </SidebarHeader>
       <SidebarContent className="p-2">
