@@ -212,7 +212,7 @@ export function LeftSidebarContent({ collections, onCollectionCreate }: { collec
                   <div className="my-1 h-px bg-border" />
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-red-500 hover:text-accent-foreground"
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-red-500 hover:text-white"
                     onClick={() => signOut({ redirectUrl: '/' })}
                   >
                     <LogOut className="size-4 shrink-0" />

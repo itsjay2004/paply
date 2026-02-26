@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, FileText, Highlighter, StickyNote, Loader2, MapPin } from 'lucide-react';
+import { ArrowLeft, FileText, Highlighter, StickyNote, Loader2, MapPin, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { SavedHighlight } from '@/components/pdf-viewer-with-highlights';
@@ -39,6 +39,7 @@ export function PdfViewerPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'highlights' | 'notes'>('highlights');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [newNote, setNewNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
   const [savingHighlight, setSavingHighlight] = useState(false);
@@ -217,6 +218,15 @@ export function PdfViewerPage({
         </Button>
         <FileText className="h-5 w-5 text-muted-foreground" />
         <span className="text-sm font-medium text-muted-foreground">PDF Viewer</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto"
+          onClick={() => setSidebarOpen((o) => !o)}
+          title={sidebarOpen ? 'Hide highlights & notes' : 'Show highlights & notes'}
+        >
+          {sidebarOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+        </Button>
       </header>
 
       <div className="flex flex-1 min-h-0">
@@ -236,7 +246,8 @@ export function PdfViewerPage({
           />
         </div>
 
-        {/* Sidebar: Highlights & Notes */}
+        {/* Sidebar: Highlights & Notes (toggleable) */}
+        {sidebarOpen && (
         <aside className="w-80 shrink-0 border-l bg-card flex flex-col">
           <div className="flex border-b">
             <button
@@ -287,9 +298,9 @@ export function PdfViewerPage({
                             key={h.id}
                             className="rounded-lg border bg-muted/30 p-2 text-sm group"
                           >
-                            <p className="font-medium text-foreground/90">&ldquo;{h.highlighted_text}&rdquo;</p>
+                            <p className="font-medium text-foreground/90 line-clamp-3">&ldquo;{h.highlighted_text}&rdquo;</p>
                             {h.explanation && (
-                              <p className="mt-1 text-muted-foreground text-xs">{h.explanation}</p>
+                              <p className="mt-1 text-muted-foreground text-xs line-clamp-2">{h.explanation}</p>
                             )}
                             <div className="mt-2 flex gap-1">
                               {h.position?.areas?.length ? (
@@ -306,7 +317,7 @@ export function PdfViewerPage({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                                className="h-7 text-xs text-muted-foreground hover:bg-destructive"
                                 onClick={() => handleRemoveHighlight(h.id)}
                               >
                                 Remove
@@ -374,6 +385,7 @@ export function PdfViewerPage({
             </div>
           </ScrollArea>
         </aside>
+        )}
       </div>
     </div>
   );
