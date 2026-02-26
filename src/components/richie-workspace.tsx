@@ -315,8 +315,9 @@ export function RichieWorkspace({ embedded = false }: RichieWorkspaceProps = {})
     fetchData();
   }, [user?.id]);
 
-  /** 
-   * Updates a paper's AI summary in the database and local state. 
+  /**
+   * Updates a paper's AI summary in the database and local state.
+   * Also updates the summaries cache so the paper list Summary column shows the new summary.
    */
   const handleSummaryUpdate = async (paperId: string, summary: string[]) => {
     try {
@@ -329,6 +330,7 @@ export function RichieWorkspace({ embedded = false }: RichieWorkspaceProps = {})
       const raw = await response.json();
       const updatedPaper = apiPaperToPaper((Array.isArray(raw) ? raw[0] : raw) as Record<string, unknown>);
       handlePaperUpdate(updatedPaper);
+      setSummaries((prev) => ({ ...prev, [paperId]: summary }));
     } catch (error) {
       console.error("Error updating summary:", error);
     }

@@ -11,8 +11,7 @@ import {
   SidebarGroupContent,
 } from '@/components/ui/sidebar';
 import { Button } from './ui/button';
-import { Switch } from './ui/switch';
-import { BookOpenCheck, Folder, HelpCircle, Library, LogOut, Plus, Settings, Star, User } from 'lucide-react';
+import { BookOpenCheck, Folder, HelpCircle, Library, LogOut, Moon, Plus, Settings, Star, Sun, User } from 'lucide-react';
 import type { Collection } from '@/lib/types';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
@@ -220,14 +219,36 @@ export function LeftSidebarContent({
                     <HelpCircle className="size-4 shrink-0" />
                     Help
                   </button>
-                  <div className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-2 text-sm">
-                    <span className="flex items-center gap-2">
-                      <span className="text-sm">Theme</span>
-                    </span>
-                    <Switch
-                      checked={resolvedTheme === 'light'}
-                      onCheckedChange={(checked) => setTheme(checked ? 'light' : 'dark')}
-                    />
+                  <div className="flex w-full flex-col gap-2 px-2 py-1">
+                    <span className="text-xs font-medium text-muted-foreground">Theme</span>
+                    <div className="flex rounded-lg border border-border bg-muted/50 p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setTheme('light')}
+                        className={cn(
+                          'flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium transition-colors',
+                          resolvedTheme === 'light'
+                            ? 'bg-background text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        <Sun className="size-3.5" />
+                        Light
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTheme('dark')}
+                        className={cn(
+                          'flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium transition-colors',
+                          (resolvedTheme ?? 'dark') === 'dark'
+                            ? 'bg-background text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        <Moon className="size-3.5" />
+                        Dark
+                      </button>
+                    </div>
                   </div>
                   <div className="my-1 h-px bg-border" />
                   <button

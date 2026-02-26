@@ -63,10 +63,10 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
               <TableHead className="text-xs uppercase tracking-wide text-muted-foreground min-w-[140px]">
                 Authors
               </TableHead>
-              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground min-w-[200px]">
+              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground min-w-[150px]">
                 Abstract
               </TableHead>
-              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground min-w-[160px]">
+              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground min-w-[250px]">
                 Summary
               </TableHead>
               <TableHead className="text-xs uppercase tracking-wide text-muted-foreground w-[100px]">
@@ -84,7 +84,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
             {filteredPapers.length > 0 ? (
               filteredPapers.map((paper) => {
                 const landingUrl = paper.landingPageUrl || paper.paperUrl || null;
-                const summaryPoints = summaries[paper.id];
+                const summaryPoints = summaries[paper.id] ?? paper.summary;
                 return (
                   <TableRow
                     key={paper.id}
@@ -126,7 +126,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-muted-foreground">
                           {paper.year > 0 && <span>{paper.year}</span>}
                           {paper.citedByCount != null && (
-                            <span className="inline-flex items-center gap-1">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 font-bold">
                               <Quote className="h-3.5 w-3.5 shrink-0" aria-hidden />
                               {paper.citedByCount}
                             </span>

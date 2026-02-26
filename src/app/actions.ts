@@ -4,7 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { abstractSummarizer } from '@/ai/flows/abstract-summarizer';
 import { explainText } from '@/ai/flows/text-explainer';
 import { fetchPaperDetailsFromDoi } from '@/ai/flows/fetch-paper-details-from-doi';
-import { extractPaperDetailsFromPdf } from '@/ai/flows/extract-paper-details-from-pdf';
+import { extractTitleDoiFromPdf } from '@/ai/flows/extract-title-doi-from-pdf';
 import { deletePdfFromS3, getPdfBufferFromS3, uploadPdfToS3 } from '@/lib/s3';
 import type { Paper } from '@/lib/types';
 import { z } from 'zod';
@@ -83,8 +83,61 @@ function dataUriToBuffer(dataUri: string): Buffer {
   return Buffer.from(match[2], 'base64');
 }
 
+/** Normalize DOI for OpenAlex (strip https://doi.org/ prefix if present). */
+function normalizeDoi(doi: string): string {
+  const s = doi.trim();
+  const m = s.match(/^(?:https?:\/\/)?(?:doi\.org\/)?(.+)$/i);
+  return m ? m[1].trim() : s;
+}
+
+/** Build paper from OpenAlex result + our pdfUrl. */
+function paperFromOpenAlex(
+  details: Awaited<ReturnType<typeof fetchPaperDetailsFromDoi>>,
+  pdfUrl: string
+): Omit<Paper, 'id'> {
+  return {
+    title: details.title,
+    authors: details.authors,
+    year: details.year,
+    publication_date: details.publication_date ?? undefined,
+    abstract: details.abstract,
+    doi: details.doi ?? null,
+    source: details.source ?? undefined,
+    pdfUrl,
+    summary: [],
+    tags: [],
+    collectionIds: [],
+    typeOfWork: details.work_type ?? undefined,
+    language: details.language ?? undefined,
+    paperUrl: details.paperUrl ?? undefined,
+    landingPageUrl: details.landingPageUrl ?? undefined,
+    citedByCount: details.citedByCount ?? undefined,
+  };
+}
+
+/** Build minimal fallback paper (title + optional DOI when OpenAlex not used). */
+function fallbackPaper(
+  title: string,
+  pdfUrl: string,
+  doi: string | null
+): Omit<Paper, 'id'> {
+  return {
+    title,
+    authors: [],
+    year: 0,
+    abstract: '',
+    doi: doi ?? null,
+    pdfUrl,
+    summary: [],
+    tags: [],
+    collectionIds: [],
+  };
+}
+
 /**
  * Upload-first then extract (server receives PDF). Kept for fallback; prefer presigned flow.
+ * Extracts only title + DOI from PDF, then fetches full metadata from OpenAlex by DOI.
+ * Fallback: use extracted title + DOI; ultimate fallback: use filename as title.
  */
 export async function importPaperFromPdf(
   data: { pdfDataUri: string; filename?: string }
@@ -99,6 +152,8 @@ export async function importPaperFromPdf(
     throw new Error('You must be signed in to upload a PDF.');
   }
 
+  const filenameFallback = parsed.data.filename?.trim() || 'Imported PDF';
+
   try {
     const buffer = dataUriToBuffer(parsed.data.pdfDataUri);
     const objectKeyId = crypto.randomUUID();
@@ -109,22 +164,25 @@ export async function importPaperFromPdf(
       contentType: 'application/pdf',
     });
 
-    const details = await extractPaperDetailsFromPdf({
+    const extracted = await extractTitleDoiFromPdf({
       pdfDataUri: parsed.data.pdfDataUri,
     });
+    const rawDoi = extracted.doi?.trim();
+    const titleFromPdf = extracted.title?.trim();
 
-    return {
-      title: details.title,
-      authors: details.authors,
-      year: details.year,
-      abstract: details.abstract,
-      doi: details.doi ?? null,
-      source: details.journal ?? undefined,
-      pdfUrl,
-      summary: [],
-      tags: [],
-      collectionIds: [],
-    };
+    if (rawDoi) {
+      try {
+        const details = await fetchPaperDetailsFromDoi({
+          doi: normalizeDoi(rawDoi),
+        });
+        return paperFromOpenAlex(details, pdfUrl);
+      } catch {
+        // OpenAlex failed: use extracted title + DOI
+      }
+    }
+
+    const title = titleFromPdf || filenameFallback;
+    return fallbackPaper(title, pdfUrl, rawDoi ? rawDoi : null);
   } catch (error) {
     console.error('Error importing from PDF:', error);
     throw new Error(
@@ -139,7 +197,8 @@ const importFromPdfKeySchema = z.object({
 
 /**
  * Extract paper details from a PDF already in S3 (uploaded by client via presigned PUT).
- * Verifies the key belongs to the current user. On extraction failure, deletes the orphan object.
+ * Extracts only title + DOI from PDF, then fetches full metadata from OpenAlex by DOI.
+ * Fallback: use extracted title + DOI; ultimate fallback: use key basename (e.g. "file.pdf") as title.
  */
 export async function importPaperFromPdfWithKey(
   data: { key: string }
@@ -160,23 +219,28 @@ export async function importPaperFromPdfWithKey(
     throw new Error('You do not have access to this upload.');
   }
 
+  const filenameFallback = key.split('/').pop()?.trim() || 'Imported PDF';
+
   try {
     const buffer = await getPdfBufferFromS3(key);
     const pdfDataUri = `data:application/pdf;base64,${buffer.toString('base64')}`;
-    const details = await extractPaperDetailsFromPdf({ pdfDataUri });
+    const extracted = await extractTitleDoiFromPdf({ pdfDataUri });
+    const rawDoi = extracted.doi?.trim();
+    const titleFromPdf = extracted.title?.trim();
 
-    return {
-      title: details.title,
-      authors: details.authors,
-      year: details.year,
-      abstract: details.abstract,
-      doi: details.doi ?? null,
-      source: details.journal ?? undefined,
-      pdfUrl: key,
-      summary: [],
-      tags: [],
-      collectionIds: [],
-    };
+    if (rawDoi) {
+      try {
+        const details = await fetchPaperDetailsFromDoi({
+          doi: normalizeDoi(rawDoi),
+        });
+        return paperFromOpenAlex(details, key);
+      } catch {
+        // OpenAlex failed: use extracted title + DOI
+      }
+    }
+
+    const title = titleFromPdf || filenameFallback;
+    return fallbackPaper(title, key, rawDoi ? rawDoi : null);
   } catch (error) {
     await deletePdfFromS3(key);
     console.error('Error importing from PDF (S3 key):', error);

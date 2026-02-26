@@ -16,7 +16,7 @@ const AbstractSummarizerInputSchema = z.object({
 export type AbstractSummarizerInput = z.infer<typeof AbstractSummarizerInputSchema>;
 
 const AbstractSummarizerOutputSchema = z.object({
-  summaryPoints: z.array(z.string()).min(3).max(3).describe('A three-bullet summary of the abstract.'),
+  summaryPoints: z.array(z.string()).min(2).max(4).describe('Two to four complete sentences summarizing the abstract; each array element is one sentence.'),
 });
 export type AbstractSummarizerOutput = z.infer<typeof AbstractSummarizerOutputSchema>;
 
@@ -25,11 +25,26 @@ export async function abstractSummarizer(input: AbstractSummarizerInput): Promis
 }
 
 const abstractSummarizerPrompt = ai.definePrompt({
-  name: 'abstractSummarizerPrompt',
+  name: 'abstractSummarizerPromptV2',
   input: { schema: AbstractSummarizerInputSchema },
   output: { schema: AbstractSummarizerOutputSchema },
-  prompt: `You are an expert academic summarizer. Your task is to condense the provided abstract into a concise three-bullet point summary.
-Each bullet point should capture a main idea or finding from the abstract.
+  prompt: `
+  You are an expert academic research summarizer.
+  
+  Your task is to generate a concise high-quality summary of the provided abstract.
+
+STRICT REQUIREMENTS:
+- Write in 2 to 4 complete sentences (not bullet points).
+-CONTENT: The summary must explicitly cover:
+        1. Context: What is the paper or study is about? 
+        2. What approach, experiment, or method is discussed (if mentioned)?
+        3. The key findings or arguments
+        4. Findings/Conclusion: What was discovered or concluded?
+- Use formal academic tone.
+- Do not add information that is not present in the abstract.
+- Do not repeat phrases unnecessarily.
+- Do not use generic phrases like "This paper discusses" or "The study talks about."
+- Keep it clear, precise, and information-dense.
 
 Abstract:
 {{{abstract}}}`,
@@ -37,7 +52,7 @@ Abstract:
 
 const abstractSummarizerFlow = ai.defineFlow(
   {
-    name: 'abstractSummarizerFlow',
+    name: 'abstractSummarizerFlowV2',
     inputSchema: AbstractSummarizerInputSchema,
     outputSchema: AbstractSummarizerOutputSchema,
   },
