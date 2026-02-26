@@ -24,6 +24,8 @@ export type Paper = {
   landingPageUrl?: string | null;
   /** OpenAlex: number of citing works. */
   citedByCount?: number | null;
+  /** User-starred for quick access (Starred tab). */
+  starred?: boolean;
 };
 
 export type Collection = {

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import type { Paper, Collection } from '@/lib/types';
+import type { SidebarView } from '@/components/left-sidebar-content';
+import { useSidebarView } from '@/lib/sidebar-view-context';
 
 /** Map API/Supabase paper row (snake_case) to frontend Paper type. */
 function apiPaperToPaper(row: Record<string, unknown>): Paper {
@@ -30,6 +32,7 @@ function apiPaperToPaper(row: Record<string, unknown>): Paper {
     paperUrl: (row.paper_url as string) ?? (row.paperUrl as string) ?? undefined,
     landingPageUrl: (row.landing_page_url as string) ?? (row.landingPageUrl as string) ?? undefined,
     citedByCount: typeof row.cited_by_count === 'number' ? row.cited_by_count : (row.citedByCount as number) ?? undefined,
+    starred: typeof row.starred === 'boolean' ? row.starred : Boolean((row as Record<string, unknown>).starred),
   };
 }
 import { Sidebar, SidebarProvider, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
@@ -63,6 +66,10 @@ function RichieWorkspaceLayout({
   isImportDialogOpen,
   setImportDialogOpen,
   onPaperImported,
+  onStarToggle,
+  activeView,
+  selectedCollectionId,
+  onNavigate,
   embedded = false,
 }: {
   papers: Paper[];
@@ -78,9 +85,28 @@ function RichieWorkspaceLayout({
   isImportDialogOpen: boolean;
   setImportDialogOpen: (open: boolean) => void;
   onPaperImported: (paper: Omit<Paper, 'id'>) => void;
+  onStarToggle: (paper: Paper) => void;
+  activeView: SidebarView;
+  selectedCollectionId: string | null;
+  onNavigate: (view: SidebarView, collectionId?: string) => void;
   /** When true, sidebar is rendered by parent layout; only main content is rendered here. */
   embedded?: boolean;
 }) {
+  const displayedPapers =
+    activeView === 'starred'
+      ? papers.filter((p) => p.starred)
+      : activeView === 'collection' && selectedCollectionId
+        ? papers.filter((p) => p.collection_id === selectedCollectionId)
+        : papers;
+
+  const headerTitle =
+    activeView === 'all'
+      ? 'All Papers'
+      : activeView === 'starred'
+        ? 'Starred'
+        : activeView === 'collection' && selectedCollectionId
+          ? collections.find((c) => c.id === selectedCollectionId)?.name ?? 'Collection'
+          : 'All Papers';
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
 
   const mainContent = (
@@ -90,7 +116,7 @@ function RichieWorkspaceLayout({
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:px-6 sticky top-0 z-30">
           <SidebarTrigger className="md:hidden" />
           <div className="flex-1">
-            <h1 className="text-lg font-semibold tracking-tight">All Papers</h1>
+            <h1 className="text-lg font-semibold tracking-tight">{headerTitle}</h1>
           </div>
           <div className="flex items-center gap-4">
             <SignedIn>
@@ -111,10 +137,11 @@ function RichieWorkspaceLayout({
         {/* Main Content Area: Grid of paper cards */}
         <main className={cn('flex-1 grid overflow-hidden', 'grid-cols-1')}>
           <PaperList
-            papers={papers}
+            papers={displayedPapers}
             summaries={summaries}
             selectedPaper={selectedPaper}
             onSelectPaper={onSelectPaper}
+            onStarToggle={onStarToggle}
           />
         </main>
       </div>
@@ -152,7 +179,13 @@ function RichieWorkspaceLayout({
   const mainLayout = (
     <div className="flex h-screen w-full bg-background">
       <Sidebar variant="sidebar" collapsible="icon" className="border-r bg-card">
-        <LeftSidebarContent collections={collections} onCollectionCreate={onCollectionCreate} />
+        <LeftSidebarContent
+          collections={collections}
+          onCollectionCreate={onCollectionCreate}
+          activeView={activeView}
+          selectedCollectionId={selectedCollectionId}
+          onNavigate={onNavigate}
+        />
       </Sidebar>
       {mainContent}
     </div>
@@ -180,6 +213,18 @@ export function RichieWorkspace({ embedded = false }: RichieWorkspaceProps = {})
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [summaries, setSummaries] = useState<Record<string, string[]>>({});
   const [isImportDialogOpen, setImportDialogOpen] = useState(false);
+  const [localActiveView, setLocalActiveView] = useState<SidebarView>('all');
+  const [localSelectedCollectionId, setLocalSelectedCollectionId] = useState<string | null>(null);
+  const sidebarView = useSidebarView();
+
+  const activeView = embedded && sidebarView ? sidebarView.activeView : localActiveView;
+  const selectedCollectionId = embedded && sidebarView ? sidebarView.selectedCollectionId : localSelectedCollectionId;
+  const handleNavigate = embedded && sidebarView
+    ? sidebarView.onNavigate
+    : (view: SidebarView, collectionId?: string) => {
+        setLocalActiveView(view);
+        setLocalSelectedCollectionId(view === 'collection' && collectionId ? collectionId : null);
+      };
   const { user } = useUser(); // Use Clerk's useUser hook
 
   // Sync Clerk user profile to Supabase database for consistent user records
@@ -322,6 +367,7 @@ export function RichieWorkspace({ embedded = false }: RichieWorkspaceProps = {})
         landingPageUrl: paperToSave.landingPageUrl,
         citedByCount: paperToSave.citedByCount,
         collection_id: paperToSave.collection_id ?? null,
+        starred: paperToSave.starred ?? false,
       }),
     });
     if (!response.ok) {
@@ -373,7 +419,30 @@ export function RichieWorkspace({ embedded = false }: RichieWorkspaceProps = {})
     }
   };
 
-  /** 
+  /**
+   * Toggle a paper's starred state and persist to the API.
+   */
+  const handleStarToggle = async (paper: Paper) => {
+    const nextStarred = !paper.starred;
+    const updated = { ...paper, starred: nextStarred };
+    handlePaperUpdate(updated);
+    try {
+      const response = await fetch(`/api/papers/${paper.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ starred: nextStarred }),
+      });
+      if (!response.ok) throw new Error('Failed to update starred');
+      const raw = await response.json();
+      const fromApi = apiPaperToPaper((Array.isArray(raw) ? raw[0] : raw) as Record<string, unknown>);
+      handlePaperUpdate(fromApi);
+    } catch (error) {
+      console.error('Error toggling star:', error);
+      handlePaperUpdate(paper); // revert on error
+    }
+  };
+
+  /**
    * Creates a new user defined collection for organizing papers.
    */
   const handleCollectionCreate = async (name: string) => {
@@ -413,6 +482,10 @@ export function RichieWorkspace({ embedded = false }: RichieWorkspaceProps = {})
       isImportDialogOpen={isImportDialogOpen}
       setImportDialogOpen={setImportDialogOpen}
       onPaperImported={handlePaperImport}
+      onStarToggle={handleStarToggle}
+      activeView={activeView}
+      selectedCollectionId={selectedCollectionId}
+      onNavigate={handleNavigate}
       embedded={embedded}
     />
   );

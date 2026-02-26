@@ -82,6 +82,7 @@ function mapBodyToPaperUpdate(body: Record<string, unknown>) {
   if (body.citedByCount !== undefined) out.cited_by_count = typeof body.citedByCount === "number" && Number.isInteger(body.citedByCount) ? body.citedByCount : null;
   if (body.collection_id !== undefined)
     out.collection_id = body.collection_id != null && body.collection_id !== "" ? body.collection_id : null;
+  if (body.starred !== undefined) out.starred = Boolean(body.starred);
 
   return out;
 }

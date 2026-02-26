@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Quote, Search } from 'lucide-react';
+import { ExternalLink, Quote, Search, Star } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface PaperListProps {
@@ -21,9 +21,10 @@ interface PaperListProps {
   summaries: Record<string, string[]>;
   selectedPaper: Paper | null;
   onSelectPaper: (paper: Paper) => void;
+  onStarToggle?: (paper: Paper) => void;
 }
 
-export function PaperList({ papers, summaries, selectedPaper, onSelectPaper }: PaperListProps) {
+export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onStarToggle }: PaperListProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredPapers = papers.filter(
@@ -53,6 +54,9 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper }: P
         <Table>
           <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b shadow-sm">
             <TableRow className="hover:bg-transparent">
+              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground w-[48px] text-center">
+                Star
+              </TableHead>
               <TableHead className="text-xs uppercase tracking-wide text-muted-foreground min-w-[180px]">
                 Title
               </TableHead>
@@ -93,6 +97,26 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper }: P
                     )}
                     onClick={() => onSelectPaper(paper)}
                   >
+                    {/* Column 0: Star */}
+                    <TableCell className="py-3 text-center align-top" onClick={(e) => e.stopPropagation()}>
+                      {onStarToggle ? (
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                          onClick={() => onStarToggle(paper)}
+                          aria-label={paper.starred ? 'Unstar paper' : 'Star paper'}
+                        >
+                          <Star
+                            className={cn('h-4 w-4', paper.starred && 'fill-amber-500 text-amber-500')}
+                          />
+                        </button>
+                      ) : (
+                        <Star
+                          className={cn('h-4 w-4', paper.starred ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground/50')}
+                          aria-hidden
+                        />
+                      )}
+                    </TableCell>
                     {/* Column 1: Title, below: year + cited by (cite icon + number) */}
                     <TableCell className="py-3">
                       <div>
@@ -192,7 +216,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper }: P
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center">
+                <TableCell colSpan={8} className="h-32 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <p className="font-medium">No papers match your search.</p>
                     <p className="text-sm">

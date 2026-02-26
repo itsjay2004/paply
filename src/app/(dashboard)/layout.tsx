@@ -3,9 +3,24 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Sidebar, SidebarProvider } from '@/components/ui/sidebar';
 import { LeftSidebarContent } from '@/components/left-sidebar-content';
+import { SidebarViewProvider, useSidebarView } from '@/lib/sidebar-view-context';
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import type { Collection } from '@/lib/types';
+
+function DashboardSidebar({ collections, onCollectionCreate }: { collections: Collection[]; onCollectionCreate: (name: string) => Promise<void> }) {
+  const view = useSidebarView();
+  if (!view) return null;
+  return (
+    <LeftSidebarContent
+      collections={collections}
+      onCollectionCreate={onCollectionCreate}
+      activeView={view.activeView}
+      selectedCollectionId={view.selectedCollectionId}
+      onNavigate={view.onNavigate}
+    />
+  );
+}
 
 export default function DashboardLayout({
   children,
@@ -52,15 +67,17 @@ export default function DashboardLayout({
     <>
       <SignedIn>
         <SidebarProvider>
-          <div className="flex h-screen w-full bg-background">
-            <Sidebar variant="sidebar" collapsible="icon" className="border-r bg-card">
-              <LeftSidebarContent
-                collections={collections}
-                onCollectionCreate={handleCollectionCreate}
-              />
-            </Sidebar>
-            <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
-          </div>
+          <SidebarViewProvider>
+            <div className="flex h-screen w-full bg-background">
+              <Sidebar variant="sidebar" collapsible="icon" className="border-r bg-card">
+                <DashboardSidebar
+                  collections={collections}
+                  onCollectionCreate={handleCollectionCreate}
+                />
+              </Sidebar>
+              <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
+            </div>
+          </SidebarViewProvider>
         </SidebarProvider>
       </SignedIn>
       <SignedOut>

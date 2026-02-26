@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from './ui/button';
 import { Switch } from './ui/switch';
-import { BookOpenCheck, Clock, Folder, HelpCircle, Library, LogOut, Plus, Settings, Star, User } from 'lucide-react';
+import { BookOpenCheck, Folder, HelpCircle, Library, LogOut, Plus, Settings, Star, User } from 'lucide-react';
 import type { Collection } from '@/lib/types';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
@@ -23,7 +23,21 @@ import { cn } from '@/lib/utils';
 
 const HOVER_CLOSE_DELAY_MS = 150;
 
-export function LeftSidebarContent({ collections, onCollectionCreate }: { collections: Collection[]; onCollectionCreate: (name: string) => Promise<void> }) {
+export type SidebarView = 'all' | 'starred' | 'collection';
+
+export function LeftSidebarContent({
+  collections,
+  onCollectionCreate,
+  activeView,
+  selectedCollectionId,
+  onNavigate,
+}: {
+  collections: Collection[];
+  onCollectionCreate: (name: string) => Promise<void>;
+  activeView: SidebarView;
+  selectedCollectionId: string | null;
+  onNavigate: (view: SidebarView, collectionId?: string) => void;
+}) {
   const [newCollectionName, setNewCollectionName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -69,19 +83,21 @@ export function LeftSidebarContent({ collections, onCollectionCreate }: { collec
       <SidebarContent className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton isActive tooltip="All Papers">
+            <SidebarMenuButton
+              isActive={activeView === 'all'}
+              tooltip="All Papers"
+              onClick={() => onNavigate('all')}
+            >
               <Library />
               <span>All Papers</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Recents">
-              <Clock />
-              <span>Recents</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Starred">
+            <SidebarMenuButton
+              isActive={activeView === 'starred'}
+              tooltip="Starred"
+              onClick={() => onNavigate('starred')}
+            >
               <Star />
               <span>Starred</span>
             </SidebarMenuButton>
@@ -114,7 +130,11 @@ export function LeftSidebarContent({ collections, onCollectionCreate }: { collec
               )}
               {collections.map(collection => (
                 <SidebarMenuItem key={collection.id}>
-                  <SidebarMenuButton tooltip={collection.name}>
+                  <SidebarMenuButton
+                    tooltip={collection.name}
+                    isActive={activeView === 'collection' && selectedCollectionId === collection.id}
+                    onClick={() => onNavigate('collection', collection.id)}
+                  >
                     <Folder />
                     <span className="flex-1">{collection.name}</span>
                     <Badge variant="secondary" className='group-data-[collapsible=icon]:hidden'>{collection.paperCount}</Badge>

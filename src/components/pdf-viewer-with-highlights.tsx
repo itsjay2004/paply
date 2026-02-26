@@ -140,8 +140,8 @@ export function PdfViewerWithHighlights({
     }
   };
 
-  const zoomIn = () => zoomPluginInstance.zoomTo(scale + 0.25);
-  const zoomOut = () => zoomPluginInstance.zoomTo(Math.max(0.5, scale - 0.25));
+  const zoomIn = () => zoomPluginInstance.zoomTo(scale + 0.10);
+  const zoomOut = () => zoomPluginInstance.zoomTo(Math.max(0.5, scale - 0.10));
 
   const renderHighlightTarget = useCallback(
     (props: RenderHighlightTargetProps) => {

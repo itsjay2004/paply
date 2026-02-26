@@ -60,9 +60,11 @@ function mapBodyToPaperRow(body: Record<string, unknown>, userId: string) {
         : null;
 
   const collectionId = body.collection_id;
+  const starred = body.starred;
   return {
     user_id: userId,
     collection_id: (collectionId != null && collectionId !== "") ? String(collectionId) : null,
+    starred: typeof starred === "boolean" ? starred : false,
     title: typeof body.title === "string" ? body.title : "",
     authors: Array.isArray(body.authors)
       ? formatAuthorNames(body.authors as string[])
