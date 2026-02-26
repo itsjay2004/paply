@@ -11,11 +11,13 @@ import {
   SidebarGroupContent,
 } from '@/components/ui/sidebar';
 import { Button } from './ui/button';
+import { Switch } from './ui/switch';
 import { BookOpenCheck, Clock, Folder, HelpCircle, Library, LogOut, Plus, Settings, Star, User } from 'lucide-react';
 import type { Collection } from '@/lib/types';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { useUser, useClerk } from '@clerk/nextjs';
+import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +30,7 @@ export function LeftSidebarContent({ collections, onCollectionCreate }: { collec
   const leaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { resolvedTheme, setTheme } = useTheme();
 
   const clearLeaveTimeout = useCallback(() => {
     if (leaveTimeoutRef.current) {
@@ -197,10 +200,19 @@ export function LeftSidebarContent({ collections, onCollectionCreate }: { collec
                     <HelpCircle className="size-4 shrink-0" />
                     Help
                   </button>
+                  <div className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-2 text-sm">
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm">Theme</span>
+                    </span>
+                    <Switch
+                      checked={resolvedTheme === 'light'}
+                      onCheckedChange={(checked) => setTheme(checked ? 'light' : 'dark')}
+                    />
+                  </div>
                   <div className="my-1 h-px bg-border" />
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-red-500 hover:text-accent-foreground"
                     onClick={() => signOut({ redirectUrl: '/' })}
                   >
                     <LogOut className="size-4 shrink-0" />
