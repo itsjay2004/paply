@@ -7,6 +7,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -108,6 +109,23 @@ export async function getPresignedPutUrl(
   });
   const putUrl = await getSignedUrl(client, command, { expiresIn: expiresInSeconds });
   return { putUrl, key };
+}
+
+/**
+ * Get the size in bytes of an S3 object (for storage accounting).
+ * Returns null if the object does not exist or Head fails.
+ */
+export async function getPdfSizeFromS3(key: string): Promise<number | null> {
+  const { bucket } = getS3Config();
+  const client = getS3Client();
+  try {
+    const response = await client.send(
+      new HeadObjectCommand({ Bucket: bucket, Key: key })
+    );
+    return response.ContentLength ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**

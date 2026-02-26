@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { getPresignedPutUrl } from "@/lib/s3";
+import { getSupabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
 const MAX_PDF_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
@@ -7,11 +8,11 @@ const MAX_PDF_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 /**
  * POST /api/upload-pdf/presigned-url
  * Returns a presigned PUT URL and the S3 key for client-side upload.
- * Client should PUT the PDF to putUrl, then call the import action with key.
+ * Enforces per-user storage limit (default 500 MB).
  */
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -25,7 +26,25 @@ export async function POST(req: Request) {
       );
     }
 
-    // Optional: attach PDF to an existing paper (DOI-imported). Key will be uploads/{userId}/{paperId}.pdf
+    const accessToken = await getToken({ template: "supabase" });
+    if (!accessToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const supabase = getSupabase(accessToken);
+    const { data: userRow } = await supabase
+      .from("users")
+      .select("storage_used_bytes, storage_limit_bytes")
+      .single();
+
+    const used = Number(userRow?.storage_used_bytes ?? 0);
+    const limit = Number(userRow?.storage_limit_bytes ?? 500 * 1024 * 1024);
+    if (used + size > limit) {
+      return NextResponse.json(
+        { error: "Storage limit reached. Free up space or upgrade your plan." },
+        { status: 403 }
+      );
+    }
+
     const paperId = typeof body.paperId === "string" && /^[a-f0-9-]{36}$/i.test(body.paperId.trim())
       ? body.paperId.trim()
       : null;

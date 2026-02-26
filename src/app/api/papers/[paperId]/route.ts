@@ -1,6 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { getSupabase } from "@/lib/supabase";
-import { deletePdfFromS3, parseS3KeyFromPdfUrl } from "@/lib/s3";
+import {
+  deletePdfFromS3,
+  getPdfSizeFromS3,
+  isS3KeyPdfUrl,
+  parseS3KeyFromPdfUrl,
+} from "@/lib/s3";
 import { formatAuthorNames } from "@/lib/format-author-name";
 import { NextResponse } from "next/server";
 
@@ -67,6 +72,7 @@ function mapBodyToPaperUpdate(body: Record<string, unknown>) {
   if (body.abstract !== undefined) out.abstract = typeof body.abstract === "string" ? body.abstract : null;
   if (summaryText !== undefined) out.summary = summaryText;
   if (body.pdfUrl !== undefined) out.pdf_url = typeof body.pdfUrl === "string" ? body.pdfUrl : null;
+  if (body.pdf_size_bytes !== undefined) out.pdf_size_bytes = typeof body.pdf_size_bytes === "number" ? body.pdf_size_bytes : null;
   if (body.work_type !== undefined) out.work_type = body.work_type;
   else if (body.typeOfWork !== undefined) out.work_type = body.typeOfWork;
   if (body.language !== undefined) out.language = body.language;
@@ -95,6 +101,44 @@ export async function PATCH(
     }
 
     const supabase = getSupabase(accessToken);
+
+    const newPdfUrl = values.pdf_url as string | undefined;
+    if (newPdfUrl !== undefined && isS3KeyPdfUrl(newPdfUrl)) {
+      const { data: current } = await supabase
+        .from("papers")
+        .select("pdf_url, pdf_size_bytes")
+        .eq("id", params.paperId)
+        .single();
+
+      const oldSize =
+        current?.pdf_size_bytes != null
+          ? Number(current.pdf_size_bytes)
+          : current?.pdf_url && isS3KeyPdfUrl(current.pdf_url)
+            ? (await getPdfSizeFromS3(current.pdf_url as string)) ?? 0
+            : 0;
+      const newSize = (await getPdfSizeFromS3(newPdfUrl)) ?? 0;
+      (values as Record<string, unknown>).pdf_size_bytes = newSize > 0 ? newSize : null;
+      const delta = newSize - oldSize;
+      if (delta !== 0) {
+        await supabase.rpc("increment_user_storage", { delta });
+      }
+    } else if (newPdfUrl === null || newPdfUrl === "") {
+      const { data: current } = await supabase
+        .from("papers")
+        .select("pdf_url, pdf_size_bytes")
+        .eq("id", params.paperId)
+        .single();
+      if (current?.pdf_url && isS3KeyPdfUrl(current.pdf_url)) {
+        const oldSize =
+          current.pdf_size_bytes != null
+            ? Number(current.pdf_size_bytes)
+            : (await getPdfSizeFromS3(current.pdf_url as string)) ?? 0;
+        if (oldSize > 0) {
+          await supabase.rpc("increment_user_storage", { delta: -oldSize });
+        }
+        (values as Record<string, unknown>).pdf_size_bytes = null;
+      }
+    }
 
     const { data: paper, error } = await supabase
       .from("papers")
@@ -130,13 +174,19 @@ export async function DELETE(
 
     const { data: paper, error: fetchError } = await supabase
       .from("papers")
-      .select("pdf_url")
+      .select("pdf_url, pdf_size_bytes")
       .eq("id", params.paperId)
       .single();
 
-    if (!fetchError && paper?.pdf_url) {
+    if (!fetchError && paper?.pdf_url && isS3KeyPdfUrl(paper.pdf_url)) {
       const s3Key = parseS3KeyFromPdfUrl(paper.pdf_url);
       if (s3Key) {
+        // Only subtract storage for papers that have pdf_size_bytes (new uploads). Legacy rows are not counted.
+        if (paper.pdf_size_bytes != null && Number(paper.pdf_size_bytes) > 0) {
+          await supabase.rpc("increment_user_storage", {
+            delta: -Number(paper.pdf_size_bytes),
+          });
+        }
         await deletePdfFromS3(s3Key);
       }
     }

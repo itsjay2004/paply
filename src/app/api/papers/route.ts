@@ -3,6 +3,7 @@ import { getErrorMessageWithHint } from "@/lib/api-error-message";
 import { getSupabase } from "@/lib/supabase";
 import { syncUserToSupabase } from "@/lib/sync-user-to-supabase";
 import { formatAuthorNames } from "@/lib/format-author-name";
+import { getPdfSizeFromS3, isS3KeyPdfUrl } from "@/lib/s3";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -98,7 +99,13 @@ export async function POST(req: Request) {
     await syncUserToSupabase({ id: userId });
     const supabase = getSupabase(accessToken);
 
-    const row = mapBodyToPaperRow(body, userId);
+    const row = mapBodyToPaperRow(body, userId) as Record<string, unknown>;
+
+    if (row.pdf_url && isS3KeyPdfUrl(row.pdf_url as string)) {
+      const key = row.pdf_url as string;
+      const size = await getPdfSizeFromS3(key);
+      if (size != null) row.pdf_size_bytes = size;
+    }
 
     const { data: paper, error } = await supabase
       .from("papers")
@@ -111,6 +118,11 @@ export async function POST(req: Request) {
         { error: "Failed to create paper", details: error.message },
         { status: 500 }
       );
+    }
+
+    const sizeAdded = row.pdf_size_bytes != null ? Number(row.pdf_size_bytes) : 0;
+    if (sizeAdded > 0) {
+      await supabase.rpc("increment_user_storage", { delta: sizeAdded });
     }
 
     return NextResponse.json(paper);
