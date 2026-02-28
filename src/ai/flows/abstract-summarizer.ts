@@ -1,8 +1,8 @@
 'use server';
 /**
- * @fileOverview A Genkit flow to summarize a paper abstract into three bullet points.
+ * @fileOverview A Genkit flow to summarize a paper abstract into a paragraph.
  *
- * - abstractSummarizer - A function that generates a three-bullet summary of a given abstract.
+ * - abstractSummarizer - A function that generates a paragraph summary of a given abstract.
  * - AbstractSummarizerInput - The input type for the abstractSummarizer function.
  * - AbstractSummarizerOutput - The return type for the abstractSummarizer function.
  */
@@ -16,7 +16,7 @@ const AbstractSummarizerInputSchema = z.object({
 export type AbstractSummarizerInput = z.infer<typeof AbstractSummarizerInputSchema>;
 
 const AbstractSummarizerOutputSchema = z.object({
-  summaryPoints: z.array(z.string()).min(2).max(4).describe('Two to four complete sentences summarizing the abstract; each array element is one sentence.'),
+  summary: z.string().describe('A concise paragraph (2-4 sentences) summarizing the abstract. Write as a flowing paragraph, not bullet points.'),
 });
 export type AbstractSummarizerOutput = z.infer<typeof AbstractSummarizerOutputSchema>;
 
@@ -34,17 +34,19 @@ const abstractSummarizerPrompt = ai.definePrompt({
   Your task is to generate a concise high-quality summary of the provided abstract.
 
 STRICT REQUIREMENTS:
-- Write in 2 to 4 complete sentences (not bullet points).
--CONTENT: The summary must explicitly cover:
-        1. Context: What is the paper or study is about? 
+- Write a single flowing paragraph with 2 to 4 complete sentences (NOT bullet points or a list).
+- CONTENT: The summary must explicitly cover:
+        1. Context: What is the paper or study about? 
         2. What approach, experiment, or method is discussed (if mentioned)?
         3. The key findings or arguments
         4. Findings/Conclusion: What was discovered or concluded?
 - Use formal academic tone.
+- Write as a continuous paragraph with smooth transitions between sentences.
 - Do not add information that is not present in the abstract.
 - Do not repeat phrases unnecessarily.
 - Do not use generic phrases like "This paper discusses" or "The study talks about."
 - Keep it clear, precise, and information-dense.
+- Return ONLY the paragraph text, no formatting, no bullet points, no numbering.
 
 Abstract:
 {{{abstract}}}`,

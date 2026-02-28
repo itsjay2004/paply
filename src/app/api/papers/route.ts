@@ -103,10 +103,18 @@ export async function POST(req: Request) {
 
     const row = mapBodyToPaperRow(body, userId) as Record<string, unknown>;
 
+    // Try to get PDF size from S3 if it's an S3 key, but don't fail if file doesn't exist yet
     if (row.pdf_url && isS3KeyPdfUrl(row.pdf_url as string)) {
       const key = row.pdf_url as string;
-      const size = await getPdfSizeFromS3(key);
-      if (size != null) row.pdf_size_bytes = size;
+      try {
+        const size = await getPdfSizeFromS3(key);
+        if (size != null && size > 0) {
+          row.pdf_size_bytes = size;
+        }
+      } catch (s3Error) {
+        console.warn(`[PAPERS_POST] Could not get S3 file size for ${key}:`, s3Error);
+        // Continue without size - file might not be uploaded yet or might not exist
+      }
     }
 
     const { data: paper, error } = await supabase
@@ -115,16 +123,50 @@ export async function POST(req: Request) {
       .select();
 
     if (error) {
-      console.error("Error creating paper:", error.message);
+      console.error("Error creating paper:", error.message, error);
+      
+      // Handle specific error cases
+      if (error.message?.includes("duplicate key") || error.message?.includes("unique constraint")) {
+        return NextResponse.json(
+          { error: "Paper already exists", details: "A paper with this DOI already exists in your library." },
+          { status: 409 }
+        );
+      }
+      
+      if (error.message?.includes("pdf_size_bytes") || error.message?.includes("storage")) {
+        // Missing column or function - try without storage tracking
+        console.warn("[PAPERS_POST] Storage tracking not available, creating paper without it");
+        const rowWithoutStorage = { ...row };
+        delete rowWithoutStorage.pdf_size_bytes;
+        const { data: paperRetry, error: retryError } = await supabase
+          .from("papers")
+          .insert([rowWithoutStorage])
+          .select();
+        
+        if (retryError) {
+          return NextResponse.json(
+            { error: "Failed to create paper", details: retryError.message },
+            { status: 500 }
+          );
+        }
+        return NextResponse.json(paperRetry);
+      }
+      
       return NextResponse.json(
         { error: "Failed to create paper", details: error.message },
         { status: 500 }
       );
     }
 
+    // Try to update storage, but don't fail if the function doesn't exist
     const sizeAdded = row.pdf_size_bytes != null ? Number(row.pdf_size_bytes) : 0;
     if (sizeAdded > 0) {
-      await supabase.rpc("increment_user_storage", { delta: sizeAdded });
+      try {
+        await supabase.rpc("increment_user_storage", { delta: sizeAdded });
+      } catch (storageError) {
+        console.warn("[PAPERS_POST] Storage tracking function not available:", storageError);
+        // Continue - paper was created successfully
+      }
     }
 
     return NextResponse.json(paper);

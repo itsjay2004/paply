@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    // Try to avoid SWC-related bus errors
+    serverComponentsExternalPackages: ['canvas'],
+  },
   images: {
     remotePatterns: [
       {

@@ -157,16 +157,12 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                       )}
                     </TableCell>
 
-                    {/* Column 4: Bullet summary if available */}
+                    {/* Column 4: Summary paragraph if available */}
                     <TableCell className="py-3 text-xs text-muted-foreground align-top">
                       {summaryPoints && summaryPoints.length > 0 ? (
-                        <ul className="list-disc pl-4 space-y-0.5 line-clamp-4">
-                          {summaryPoints.slice(0, 3).map((point, i) => (
-                            <li key={i} className="line-clamp-2">
-                              {point}
-                            </li>
-                          ))}
-                        </ul>
+                        <p className="line-clamp-4 leading-relaxed">
+                          {summaryPoints.join(' ')}
+                        </p>
                       ) : (
                         <span className="italic">—</span>
                       )}

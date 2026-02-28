@@ -138,10 +138,44 @@ Paply helps researchers organize, read, annotate, and summarize academic papers 
     AWS_ACCESS_KEY_ID=your_access_key_id
     AWS_SECRET_ACCESS_KEY=your_secret_access_key
     AWS_S3_PDF_BUCKET=your-bucket-name
+    
+    # Optional: Set your app URL for S3 CORS (defaults to * for development)
+    NEXT_PUBLIC_APP_URL=http://localhost:9002
 
     # Openalex (for fetching paper metadata using DOI)
     ```
     PDF import requires a configured S3 bucket and IAM credentials; see `docs/s3-pdf-storage-implementation-plan.md` for setup.
+
+4.  **Configure S3 CORS** (required for direct client uploads):
+    ```bash
+    node scripts/configure-s3-cors.js
+    ```
+    This script configures your S3 bucket to allow cross-origin PUT requests from your application. Make sure your AWS credentials have `s3:PutBucketCors` permission.
+    
+    Alternatively, you can configure CORS manually in the AWS Console:
+    - Go to your S3 bucket → Permissions → Cross-origin resource sharing (CORS)
+    - Add the following configuration:
+    ```json
+    [
+      {
+        "AllowedHeaders": [
+          "Content-Type",
+          "Content-MD5",
+          "x-amz-content-sha256",
+          "x-amz-date",
+          "x-amz-security-token",
+          "x-amz-user-agent",
+          "x-amz-checksum-crc32",
+          "x-amz-sdk-checksum-algorithm"
+        ],
+        "AllowedMethods": ["PUT", "POST", "GET", "HEAD", "OPTIONS"],
+        "AllowedOrigins": ["*"],
+        "ExposeHeaders": ["ETag", "x-amz-request-id"],
+        "MaxAgeSeconds": 3600
+      }
+    ]
+    ```
+    **Note**: Replace `"*"` with your specific domain in production (e.g., `["https://yourdomain.com"]`).
 
 4.  **Run the development server**:
     ```bash

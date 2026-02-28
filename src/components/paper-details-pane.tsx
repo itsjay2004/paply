@@ -451,11 +451,9 @@ export function PaperDetailsPane({
             {editedPaper.summary && editedPaper.summary.length > 0 && (
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Summary</p>
-                <ul className="list-disc space-y-1 pl-5 text-sm">
-                  {editedPaper.summary.map((point, i) => (
-                    <li key={i}>{point}</li>
-                  ))}
-                </ul>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {editedPaper.summary.join(' ')}
+                </p>
               </div>
             )}
 

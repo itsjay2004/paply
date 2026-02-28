@@ -6,6 +6,22 @@ import { NextResponse } from "next/server";
 const MAX_PDF_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 
 /**
+ * OPTIONS /api/upload-pdf/presigned-url
+ * Handle CORS preflight requests
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
+}
+
+/**
  * POST /api/upload-pdf/presigned-url
  * Returns a presigned PUT URL and the S3 key for client-side upload.
  * Enforces per-user storage limit (default 500 MB).
@@ -51,12 +67,28 @@ export async function POST(req: Request) {
     const objectKeyId = paperId ?? crypto.randomUUID();
     const { putUrl, key } = await getPresignedPutUrl(userId, objectKeyId);
 
-    return NextResponse.json({ putUrl, key });
+    return NextResponse.json(
+      { putUrl, key },
+      {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      }
+    );
   } catch (err) {
     console.error("[PRESIGNED_PUT]", err);
     return NextResponse.json(
       { error: "Failed to generate upload URL" },
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      }
     );
   }
 }

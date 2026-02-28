@@ -127,10 +127,14 @@ const MAX_PDF_BYTES = 100 * 1024 * 1024;
         const putResponse = await fetch(putUrl, {
           method: 'PUT',
           body: pdfFile,
-          headers: { 'Content-Type': 'application/pdf' },
+          headers: { 
+            'Content-Type': 'application/pdf',
+          },
         });
         if (!putResponse.ok) {
-          throw new Error('Failed to upload PDF to storage');
+          const errorText = await putResponse.text().catch(() => '');
+          console.error('S3 upload failed:', putResponse.status, errorText);
+          throw new Error(`Failed to upload PDF to storage: ${putResponse.status} ${putResponse.statusText}. ${errorText ? `Error: ${errorText}` : 'Check S3 CORS and IAM permissions.'}`);
         }
 
         setPdfStep('extracting');

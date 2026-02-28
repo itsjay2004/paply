@@ -20,8 +20,10 @@ export async function getSummary(data: { abstract: string }) {
   }
 
   try {
-    const { summaryPoints } = await abstractSummarizer({ abstract: parsed.data.abstract });
-    return summaryPoints;
+    const { summary } = await abstractSummarizer({ abstract: parsed.data.abstract });
+    // Return as array with single paragraph for backward compatibility with existing code
+    // The UI will display it as a paragraph
+    return [summary];
   } catch (error) {
     console.error('Error summarizing abstract:', error);
     throw new Error('Failed to generate summary.');
