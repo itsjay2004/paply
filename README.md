@@ -1,27 +1,90 @@
-# Paply (Richie) - AI-Powered Research Paper Manager
+# Paply
 
-Paply (internal name "Richie") is a modern, AI-enhanced tool designed for researchers and students to organize, manage, and understand academic papers efficiently.
+> **Research Without Friction.**  
+> An open-source, AI-powered reference manager built for modern researchers.
 
-## 🚀 Key Features
+Paply helps researchers organize, read, annotate, and summarize academic papers in one intelligent workspace.
 
-- **Centralized Library**: Manage all your research papers in one clean, responsive interface.
-- **AI-Powered Summaries**: Instantly generate key insights and summaries from paper abstracts using Google Genkit and Gemini.
-- **Seamless Import**: 
-  - **DOI Import**: Add papers instantly by providing their Digital Object Identifier.
-  - **PDF Import**: Upload PDF files and have the system automatically extract metadata.
-- **Organized Collections**: Group your papers into custom collections for better project management.
-- **Rich Metadata Editing**: Keep your library accurate by editing titles, authors, DOI, and publication details.
-- **Integrated Sidebar**: Quick navigation between your full library, recent papers, and favorite collections.
+
+# Paply
+
+<p align="center">
+  <b>Research Without Friction.</b><br/>
+  An open-source, AI-powered reference manager built for modern researchers.
+</p>
+
+<p align="center">
+
+  <!-- License -->
+  <img src="https://img.shields.io/github/license/itsjay2004/paply?style=for-the-badge" />
+
+  <!-- Stars -->
+  <img src="https://img.shields.io/github/stars/itsjay2004/paply?style=for-the-badge" />
+
+  <!-- Forks -->
+  <img src="https://img.shields.io/github/forks/itsjay2004/paply?style=for-the-badge" />
+
+  <!-- Issues -->
+  <img src="https://img.shields.io/github/issues/itsjay2004/paply?style=for-the-badge" />
+
+  <!-- Last Commit -->
+  <img src="https://img.shields.io/github/last-commit/itsjay2004/paply?style=for-the-badge" />
+
+  <!-- Next.js -->
+  <img src="https://img.shields.io/badge/Built%20with-Next.js-black?style=for-the-badge&logo=nextdotjs" />
+
+  <!-- Supabase -->
+  <img src="https://img.shields.io/badge/Database-Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" />
+
+  <!-- TypeScript -->
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+
+  <!-- Tailwind -->
+  <img src="https://img.shields.io/badge/Styled%20with-TailwindCSS-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white" />
+
+</p>
+
+---
+
+Paply helps researchers organize, read, annotate, and summarize academic papers in one intelligent workspace.
+
+
+## ✨ Features
+
+- 🔎 **Smart Search & DOI Lookup**  
+  Fetch metadata, abstracts, and citation details instantly.
+
+- ✏ **Organized Collections**
+  Group your papers into custom collections for better project management.
+
+- 🤖 **AI-Powered Summaries**  
+  Generate structured summaries covering context, methods, findings, and conclusions and see all your papers summaries in one table.
+
+- 📄 **Advanced PDF Viewer**  
+  Highlight, annotate, and extract insights directly inside your browser. And sync those annotated PDFs across devices.
+
+- 📚 **Research Notebook**  
+  A fully featured notetaking editor to make your academic writing seemless.
+
+- 🔐 **Privacy First**  
+  Your library is private and securely stored.
+
+- 🧠 **Modern UX**  
+  Clean, fast, distraction-free interface built for serious work.
+  
 
 ## 🛠️ Technology Stack
 
 - **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
 - **Authentication**: [Clerk](https://clerk.com/)
-- **Database**: [Supabase](https://supabase.com/)
+- **Database & Storage**: [Supabase](https://supabase.com/) and [AWS S3](https://aws.amazon.com/s3/)
 - **AI Implementation**: [Google Genkit](https://js.langchain.com/docs/get_started/introduction) + Gemini API
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **UI Components**: [Radix UI](https://www.radix-ui.com/) / [Shadcn UI](https://ui.shadcn.com/)
 - **Icons**: [Lucide React](https://lucide.dev/)
+- **PDF Engine**: [react-pdf-viewer](https://react-pdf-viewer.dev/)
+- **Text Editor**: [Tiptap](https://tiptap.dev/) (Rich-text research notebook)
+
 
 ## 📂 Project Structure
 
@@ -31,14 +94,17 @@ Paply (internal name "Richie") is a modern, AI-enhanced tool designed for resear
 - `src/lib/`: Database clients, TypeScript types, and utility functions.
 - `src/hooks/`: Custom React hooks (e.g., toast notifications).
 
+
 ## 📥 Getting Started
 
 ### Prerequisites
 
 - Node.js (Latest LTS recommended)
 - A Supabase account and project
+- A AWS account and S3 bucket
 - A Clerk account and application
 - A Gemini API key (via Google AI Studio)
+- Openalex API key (Free)
 
 ### Installation
 
@@ -72,6 +138,8 @@ Paply (internal name "Richie") is a modern, AI-enhanced tool designed for resear
     AWS_ACCESS_KEY_ID=your_access_key_id
     AWS_SECRET_ACCESS_KEY=your_secret_access_key
     AWS_S3_PDF_BUCKET=your-bucket-name
+
+    # Openalex (for fetching paper metadata using DOI)
     ```
     PDF import requires a configured S3 bucket and IAM credentials; see `docs/s3-pdf-storage-implementation-plan.md` for setup.
 
@@ -81,43 +149,73 @@ Paply (internal name "Richie") is a modern, AI-enhanced tool designed for resear
     ```
     Open [http://localhost:9002](http://localhost:9002) in your browser.
 
-## 🔧 Troubleshooting
 
-### "Connect Timeout" or "fetch failed" when calling Supabase
+## 🧪 Vision
 
-If the terminal shows **Connect Timeout Error (attempted address: …supabase.co:443, timeout: 10000ms)** or **TypeError: fetch failed**, the machine running `npm run dev` cannot open a TCP connection to Supabase within 10 seconds. The app and env vars are fine; the issue is **network connectivity** from that machine to the internet (or to Supabase).
+Paply exists to modernize the research workflow.
 
-**Try:**
+Traditional reference managers were built for storing citations.  
+Paply is built for *thinking, synthesizing, and writing*.
 
-1. **Test from the same machine**  
-   In a terminal on the **same machine** where you run `npm run dev`:
+Our vision is to create a research platform that combines:
 
-   - **Windows (PowerShell):** Use the real curl (if available) or PowerShell:
-     ```powershell
-     curl.exe -v --connect-timeout 15 https://YOUR_PROJECT_REF.supabase.co/rest/v1/
-     ```
-     If `curl.exe` is not found, use:
-     ```powershell
-     Invoke-WebRequest -Uri "https://YOUR_PROJECT_REF.supabase.co/rest/v1/" -TimeoutSec 15 -UseBasicParsing
-     ```
-   - **macOS / Linux / Git Bash:**
-     ```bash
-     curl -v --connect-timeout 15 https://YOUR_PROJECT_REF.supabase.co/rest/v1/
-     ```
+- Intelligent automation  
+- Clean, distraction-free design  
+- Open transparency  
+- Privacy-first architecture  
+- Research-centered workflows
 
-   Replace `YOUR_PROJECT_REF` with the hostname from `NEXT_PUBLIC_SUPABASE_URL` (e.g. `ntdwtbqjtkagdbsgvdtg`). If the command hangs or times out, the machine cannot reach Supabase.
+Built for researchers. By a researcher.
 
-2. **VPN / proxy**  
-   Disable VPN or corporate proxy temporarily, or configure Node/Next to use your proxy if required.
 
-3. **Firewall**  
-   Allow outbound HTTPS (port 443) from the process running Node (or from your VM/host).
+## 🤝 Contributing
 
-4. **Run the app from a different network**  
-   Run `npm run dev` on a machine that has unrestricted internet (e.g. your main PC on home Wi‑Fi instead of a VM or locked-down network).
+We welcome contributions from developers, researchers, and designers.
 
-5. **VM / Docker**  
-   If you develop inside a VM (e.g. 192.168.x.x), ensure it has **NAT or bridged** networking so it can reach the internet, not only host-only.
+Paply is an open-source project and community-driven.
+
+### How to Contribute
+
+1. Fork the repository  
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)  
+3. Commit your changes (`git commit -m 'Add amazing feature'`)  
+4. Push to the branch (`git push origin feature/amazing-feature`)  
+5. Open a Pull Request  
+
+For major changes, please open an issue first to discuss what you would like to improve.
+
+Let’s build better research tools together.
+
+
+## 🔐 Privacy & Philosophy
+
+Research should be open. Your data should not be.
+
+Paply is built on the belief that research tools must be:
+
+- Transparent
+- Privacy-respecting
+- Community-driven
+- Free from hidden tracking
+
+We do not sell user data.  
+We do not track unnecessary analytics.  
+Your research library belongs to you.
+
+Open science deserves open tools — without compromising personal privacy.
+
+
+## 📬 Contact
+
+Have feedback, suggestions, or ideas?
+
+We’d love to hear from you.
+
+- 📧 Email: itsjaybauri1233@gmail.com 
+- 🐛 GitHub Issues: Open an issue in this repository  
+
+If you're a researcher using Paply in your academic work, feel free to reach out — we'd love to learn how you're using it.
+
 
 ## 📄 License
 
