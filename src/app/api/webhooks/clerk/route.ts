@@ -14,18 +14,27 @@ export async function POST(req: NextRequest) {
     const evt = await verifyWebhook(req);
 
     if (evt.type === "user.created" || evt.type === "user.updated") {
-      const data = evt.data;
-      const primaryEmail = data.email_addresses?.find((e: { id: string }) => e.id === data.primary_email_address_id);
-      const email = primaryEmail?.email_address ?? null;
-      const name = [data.first_name, data.last_name].filter(Boolean).join(" ") || data.username ?? "";
+  const data = evt.data;
 
-      await syncUserToSupabase({
-        id: data.id,
-        email,
-        name: name || null,
-        profile_image_url: data.image_url ?? null,
-      });
-    }
+  const primaryEmail = data.email_addresses?.find(
+    (e: { id: string }) => e.id === data.primary_email_address_id
+  );
+
+  const email = primaryEmail?.email_address ?? null;
+
+  const fullName = [data.first_name, data.last_name]
+    .filter(Boolean)
+    .join(" ");
+
+  const name = fullName || data.username || "";
+
+  await syncUserToSupabase({
+    id: data.id,
+    email,
+    name: name || null,
+    profile_image_url: data.image_url ?? null,
+  });
+}
 
     return NextResponse.json({ received: true });
   } catch (err) {
