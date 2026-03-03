@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Sidebar, SidebarProvider } from '@/components/ui/sidebar';
+import { Sidebar, SidebarProvider, useSidebar } from '@/components/ui/sidebar';
+import { Sheet } from '@/components/ui/sheet';
 import { LeftSidebarContent } from '@/components/left-sidebar-content';
 import { SidebarViewProvider, useSidebarView } from '@/lib/sidebar-view-context';
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
@@ -21,6 +22,20 @@ function DashboardSidebar({ collections, onCollectionCreate }: { collections: Co
       onNavigate={view.onNavigate}
     />
   );
+}
+
+function DashboardShell({ children }: { children: React.ReactNode }) {
+  const { isMobile, openMobile, setOpenMobile } = useSidebar();
+
+  if (isMobile) {
+    return (
+      <Sheet open={openMobile} onOpenChange={setOpenMobile}>
+        {children}
+      </Sheet>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 export default function DashboardLayout({
@@ -69,15 +84,17 @@ export default function DashboardLayout({
       <SignedIn>
         <SidebarProvider>
           <SidebarViewProvider>
-            <div className="flex h-screen w-full bg-background">
-              <Sidebar variant="sidebar" collapsible="icon" className="border-r bg-card">
-                <DashboardSidebar
-                  collections={collections}
-                  onCollectionCreate={handleCollectionCreate}
-                />
-              </Sidebar>
-              <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
-            </div>
+            <DashboardShell>
+              <div className="flex h-screen w-full bg-background">
+                <Sidebar variant="sidebar" collapsible="icon" className="border-r bg-card">
+                  <DashboardSidebar
+                    collections={collections}
+                    onCollectionCreate={handleCollectionCreate}
+                  />
+                </Sidebar>
+                <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
+              </div>
+            </DashboardShell>
           </SidebarViewProvider>
         </SidebarProvider>
       </SignedIn>
