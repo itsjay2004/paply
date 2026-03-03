@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +35,7 @@ export function ImportDialog({ open, onOpenChange, onPaperImported }: ImportDial
   const [pdfStep, setPdfStep] = useState<PdfStep>(null);
   const [doiStep, setDoiStep] = useState<DoiStep>(null);
   const { toast } = useToast();
+  const importingRef = useRef(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -46,6 +47,7 @@ export function ImportDialog({ open, onOpenChange, onPaperImported }: ImportDial
   const resetForm = () => {
       setDoi('');
       setPdfFile(null);
+      importingRef.current = false;
   };
 
   const handleOpenChange = (isOpen: boolean) => {
@@ -66,12 +68,15 @@ export function ImportDialog({ open, onOpenChange, onPaperImported }: ImportDial
         toast({ variant: 'destructive', title: 'Error', description: 'Please select a PDF file.' });
         return;
       }
-const MAX_PDF_BYTES = 100 * 1024 * 1024;
-          if (pdfFile.size > MAX_PDF_BYTES) {
-            toast({ variant: 'destructive', title: 'Error', description: 'PDF must be 100 MB or smaller.' });
+      const MAX_PDF_BYTES = 100 * 1024 * 1024;
+      if (pdfFile.size > MAX_PDF_BYTES) {
+        toast({ variant: 'destructive', title: 'Error', description: 'PDF must be 100 MB or smaller.' });
         return;
       }
     }
+
+    if (importingRef.current) return;
+    importingRef.current = true;
 
     setIsImporting(true);
     setPdfStep(null);
@@ -156,6 +161,7 @@ const MAX_PDF_BYTES = 100 * 1024 * 1024;
         description: msg || 'An unexpected error occurred during import.',
       });
     } finally {
+      importingRef.current = false;
       setIsImporting(false);
       setPdfStep(null);
       setDoiStep(null);
