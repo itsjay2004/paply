@@ -65,6 +65,15 @@ function Field({
   );
 }
 
+/** Section heading with left accent bar for visual hierarchy */
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider pl-3 border-l-2 border-primary/50">
+      {children}
+    </h3>
+  );
+}
+
 /**
  * PaperDetailsPane is a sliding panel that allows the user to view and edit 
  * a specific paper's metadata. Features include auto-save, AI summarizing,
@@ -260,7 +269,7 @@ export function PaperDetailsPane({
   return (
     <div className="h-full w-full rounded-2xl bg-card border border-border/80 shadow-xl flex flex-col overflow-hidden">
       {/* Top bar — always visible */}
-      <div className="shrink-0 flex items-center justify-between border-b bg-card/95 backdrop-blur px-4 py-2.5">
+      <div className="shrink-0 flex items-center justify-between border-b-2 border-border/80 bg-card/95 backdrop-blur px-4 py-2.5">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {isSaving && (
               <>
@@ -299,7 +308,10 @@ export function PaperDetailsPane({
           </div>
         </div>
 
-      <header className="shrink-0 border-b border-border/60 bg-muted/5 px-4 py-4 space-y-4">
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="p-4 md:p-6 space-y-8 max-w-2xl mx-auto">
+          {/* Title, authors, and action buttons — scroll with content */}
+          <header className="rounded-xl border border-border/60 bg-muted/5 -mx-4 md:-mx-6 px-4 md:px-6 py-4 space-y-4 ring-1 ring-border/40">
             <Field label="Title" id="title">
               <Textarea
                 id="title"
@@ -363,7 +375,6 @@ export function PaperDetailsPane({
                 </Button>
               )}
               <div className="min-w-[200px]">
-                {/* Organize: Allow user to assign paper to a specific project collection */}
                 <Select
                   value={editedPaper.collection_id ?? '__none__'}
                   onValueChange={(value) => handleInputChange('collection_id', value === '__none__' ? null : value)}
@@ -382,12 +393,73 @@ export function PaperDetailsPane({
                 </Select>
               </div>
             </div>
-      </header>
+          </header>
 
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="p-4 md:p-6 space-y-6 max-w-2xl mx-auto">
-          <section className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-4">
-            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Details</h3>
+          {/* Abstract section */}
+          <section className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-4 ring-1 ring-border/40">
+            <div className="flex items-center justify-between gap-4">
+              <SectionHeading>Abstract</SectionHeading>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleSummarize}
+                disabled={isSummarizing}
+                className="rounded-lg gap-2 shadow-sm"
+              >
+                {isSummarizing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                Summarize
+              </Button>
+            </div>
+
+            {/* AI Summary: Rendered as a distinct high-light block if it exists */}
+            {editedPaper.summary && editedPaper.summary.length > 0 && (
+              <div className="rounded-lg border border-primary/25 bg-primary/5 p-4 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Summary</p>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {editedPaper.summary.join(' ')}
+                </p>
+              </div>
+            )}
+
+            {/* Loading Indicator for AI summarization */}
+            {(isSummarizing && (!editedPaper.summary || editedPaper.summary.length === 0)) && (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full rounded" />
+                <Skeleton className="h-4 w-full rounded" />
+                <Skeleton className="h-4 w-4/5 rounded" />
+              </div>
+            )}
+
+            {/* Abstract Textarea: Expandable view for long text */}
+            <div className="rounded-lg border border-border/50 bg-background/50 p-4">
+              <Textarea
+                value={editedPaper.abstract ?? ''}
+                onChange={(e) => handleInputChange('abstract', e.target.value)}
+                className="text-sm leading-relaxed w-full min-h-[120px] resize-y border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 rounded-none"
+                rows={isAbstractExpanded ? 16 : 5}
+                placeholder="Abstract"
+              />
+              {isLongAbstract && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsAbstractExpanded(!isAbstractExpanded)}
+                  className="mt-2 text-muted-foreground hover:text-foreground"
+                >
+                  {isAbstractExpanded ? 'Show less' : 'Show more'}
+                  {isAbstractExpanded ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />}
+                </Button>
+              )}
+            </div>
+          </section>
+
+          {/* Metadata Details */}
+          <section className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-4 ring-1 ring-border/40">
+            <SectionHeading>Details</SectionHeading>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {metadataFields.map(({ label, field, type = 'text' }) => {
                 const value = (editedPaper as Record<string, unknown>)[field];
@@ -427,67 +499,7 @@ export function PaperDetailsPane({
             </div>
           </section>
 
-          {/* AI Content Area: Paper abstract and AI-generated summary */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Abstract</h3>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={handleSummarize}
-                disabled={isSummarizing}
-                className="rounded-lg gap-2 shadow-sm"
-              >
-                {isSummarizing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4" />
-                )}
-                Summarize
-              </Button>
-            </div>
 
-            {/* AI Summary: Rendered as a distinct high-light block if it exists */}
-            {editedPaper.summary && editedPaper.summary.length > 0 && (
-              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Summary</p>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {editedPaper.summary.join(' ')}
-                </p>
-              </div>
-            )}
-
-            {/* Loading Indicator for AI summarization */}
-            {(isSummarizing && (!editedPaper.summary || editedPaper.summary.length === 0)) && (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-full rounded" />
-                <Skeleton className="h-4 w-full rounded" />
-                <Skeleton className="h-4 w-4/5 rounded" />
-              </div>
-            )}
-
-            {/* Abstract Textarea: Expandable view for long text */}
-            <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-              <Textarea
-                value={editedPaper.abstract ?? ''}
-                onChange={(e) => handleInputChange('abstract', e.target.value)}
-                className="text-sm leading-relaxed w-full min-h-[120px] resize-y border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 rounded-none"
-                rows={isAbstractExpanded ? 16 : 5}
-                placeholder="Abstract"
-              />
-              {isLongAbstract && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsAbstractExpanded(!isAbstractExpanded)}
-                  className="mt-2 text-muted-foreground hover:text-foreground"
-                >
-                  {isAbstractExpanded ? 'Show less' : 'Show more'}
-                  {isAbstractExpanded ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />}
-                </Button>
-              )}
-            </div>
-          </section>
         </div>
       </ScrollArea>
     </div>

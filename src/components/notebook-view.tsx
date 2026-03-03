@@ -5,9 +5,15 @@ import type { NotebookNote } from '@/lib/types';
 import { TiptapSimpleEditor } from '@/components/tiptap-simple-editor';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Trash2, FileText, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Plus, Trash2, FileText, PanelLeftClose, PanelLeft, BookOpen, Check, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 function apiRowToNotebookNote(row: Record<string, unknown>): NotebookNote {
   return {
@@ -177,16 +183,19 @@ export function NotebookView() {
       {/* Notes list - togglable */}
       <aside
         className={cn(
-          'flex shrink-0 flex-col overflow-hidden border-r bg-muted/30 transition-[width] duration-200 ease-out',
+          'flex shrink-0 flex-col overflow-hidden border-r border-border/70 bg-muted/20 transition-[width] duration-200 ease-out',
           listOpen ? 'w-full md:w-72' : 'w-0 border-r-0 md:w-0'
         )}
       >
-        <div className={cn('flex min-w-0 items-center justify-between border-b p-2', listOpen && 'md:min-w-[18rem]')}>
-          <span className="truncate text-sm font-medium">Notes</span>
+        <div className={cn('flex min-w-0 items-center justify-between border-b border-border/60 px-3 py-2.5', listOpen && 'md:min-w-[18rem]')}>
+          <span className="flex items-center gap-2 truncate text-sm font-semibold">
+            <BookOpen className="size-4 text-primary/80" />
+            Notes
+          </span>
           <Button
-            variant="ghost"
+            variant="default"
             size="icon"
-            className="size-8 shrink-0"
+            className="size-8 shrink-0 rounded-lg"
             onClick={handleCreateNote}
             disabled={saving}
             title="New note"
@@ -197,7 +206,9 @@ export function NotebookView() {
         <ScrollArea className="flex-1">
           <div className="space-y-0.5 p-2">
             {notes.length === 0 && (
-              <p className="p-4 text-center text-sm text-muted-foreground">No notes yet. Create one to start.</p>
+              <p className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
+                No notes yet. Create one to start.
+              </p>
             )}
             {notes.map((note) => {
               const preview = note.title?.trim() || getPreviewFromContent(note.content);
@@ -206,8 +217,9 @@ export function NotebookView() {
                 <div
                   key={note.id}
                   className={cn(
-                    'group flex items-start gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted',
-                    isSelected && 'bg-muted'
+                    'group flex items-start gap-2 rounded-lg py-2 pr-2.5 pl-2.5 text-left transition-colors',
+                    'hover:bg-muted/60',
+                    isSelected && 'border-l-2 border-l-primary bg-primary/10 pl-3'
                   )}
                 >
                   <button
@@ -223,14 +235,14 @@ export function NotebookView() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-7 opacity-0 group-hover:opacity-100"
+                    className="size-7 rounded-md opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteNote(note);
                     }}
                     title="Delete note"
                   >
-                    <Trash2 className="size-3.5 text-destructive" />
+                    <Trash2 className="size-3.5" />
                   </Button>
                 </div>
               );
@@ -240,25 +252,48 @@ export function NotebookView() {
       </aside>
 
       {/* Editor area */}
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
         {/* Toolbar: list toggle + status */}
-        <div className="flex shrink-0 items-center gap-2 border-b px-2 py-1.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 shrink-0"
-            onClick={() => setListOpen((open) => !open)}
-            title={listOpen ? 'Hide notes list' : 'Show notes list'}
-          >
-            {listOpen ? (
-              <PanelLeftClose className="size-4" />
-            ) : (
-              <PanelLeft className="size-4" />
-            )}
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            {selectedNote ? (saving ? 'Saving…' : 'Saved') : ''}
-          </span>
+        <div className="flex shrink-0 items-center gap-3 border-b border-border/60 bg-muted/20 px-3 py-2">
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 shrink-0 rounded-lg hover:bg-primary/10 hover:text-primary"
+                  onClick={() => setListOpen((open) => !open)}
+                >
+                  {listOpen ? (
+                    <PanelLeftClose className="size-4" />
+                  ) : (
+                    <PanelLeft className="size-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[220px]">
+                <p className="font-medium">{listOpen ? 'Hide notes list' : 'Show notes list'}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {listOpen ? 'Collapse the sidebar to get more writing space.' : 'Expand the sidebar to browse and switch between notes.'}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {selectedNote && (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {saving ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <Check className="size-3.5 text-emerald-500" />
+                  Saved
+                </>
+              )}
+            </span>
+          )}
         </div>
         {error && (
           <div className="shrink-0 border-b bg-destructive/10 px-4 py-2 text-sm text-destructive">
@@ -266,30 +301,37 @@ export function NotebookView() {
           </div>
         )}
         {selectedNote ? (
-          <div className="flex-1 overflow-auto p-4">
+          <div className="flex flex-1 flex-col min-h-0 p-6">
             <TiptapSimpleEditor
               key={selectedNote.id}
               content={selectedNote.content}
               onUpdate={handleContentUpdate}
               placeholder="Start writing…"
               editable
-              className="min-h-[300px]"
+              className="min-h-[300px] flex-1"
             />
           </div>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center text-muted-foreground">
-            <FileText className="size-12 opacity-50" />
-            <p className="text-sm">Select a note or create a new one.</p>
-            <Button onClick={handleCreateNote} disabled={saving}>
-              <Plus className="size-4" />
-              New note
-            </Button>
-            {!listOpen && (
-              <Button variant="outline" size="sm" onClick={() => setListOpen(true)}>
-                <PanelLeft className="size-4" />
-                Show notes list
+          <div className="flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
+            <div className="rounded-2xl border border-dashed border-border/60 bg-muted/20 p-4">
+              <FileText className="size-14 text-muted-foreground/60" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Select a note or create a new one</p>
+              <p className="text-xs text-muted-foreground">Your notes are saved automatically.</p>
+            </div>
+            <div className="flex flex-wrap gap-2 justify-center">
+              <Button onClick={handleCreateNote} disabled={saving} size="sm" className="rounded-lg">
+                <Plus className="size-4" />
+                New note
               </Button>
-            )}
+              {!listOpen && (
+                <Button variant="outline" size="sm" className="rounded-lg" onClick={() => setListOpen(true)}>
+                  <PanelLeft className="size-4" />
+                  Show notes list
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </main>

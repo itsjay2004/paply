@@ -37,13 +37,13 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
   );
 
   return (
-    <div className="flex flex-col h-full border-r bg-background/60 backdrop-blur-sm">
-      <div className="p-4 border-b bg-background/80 backdrop-blur-md shrink-0">
-        <div className="relative">
+    <div className="flex h-full flex-col border-r border-border/70 bg-background/70 backdrop-blur-sm">
+      <div className="shrink-0 border-b border-border/70 bg-background/90 px-4 py-3 backdrop-blur-md">
+        <div className="relative rounded-xl border border-border/60 bg-muted/30 p-2 shadow-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="Search by title, authors, abstract, source…"
-            className="pl-10 h-9 bg-muted/40 border-muted focus-visible:ring-2 focus-visible:ring-primary/40 transition-all"
+            className="h-9 border-muted bg-background/90 pl-10 transition-all focus-visible:ring-2 focus-visible:ring-primary/40"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -51,36 +51,36 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
       </div>
 
       <ScrollArea className="flex-1 min-h-0">
-        <Table>
-          <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b shadow-sm">
+        <Table className="min-w-[1100px]">
+          <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border/70 shadow-sm">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground w-[48px] text-center">
+              <TableHead className="h-11 w-[52px] text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Star
               </TableHead>
-              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground min-w-[180px]">
+              <TableHead className="h-11 min-w-[200px] text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Title
               </TableHead>
-              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground min-w-[140px]">
+              <TableHead className="h-11 min-w-[170px] text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Authors
               </TableHead>
-              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground min-w-[150px]">
+              <TableHead className="h-11 min-w-[180px] text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Abstract
               </TableHead>
-              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground min-w-[250px]">
+              <TableHead className="h-11 min-w-[280px] text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Summary
               </TableHead>
-              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground w-[100px]">
+              <TableHead className="h-11 w-[130px] text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Source
               </TableHead>
-              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground w-[90px]">
+              <TableHead className="h-11 w-[110px] text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Work type
               </TableHead>
-              <TableHead className="text-xs uppercase tracking-wide text-muted-foreground w-[70px] text-center">
+              <TableHead className="h-11 w-[78px] text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 Landing
               </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="[&_tr:last-child]:border-b">
             {filteredPapers.length > 0 ? (
               filteredPapers.map((paper) => {
                 const landingUrl = paper.landingPageUrl || paper.paperUrl || null;
@@ -89,9 +89,9 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                   <TableRow
                     key={paper.id}
                     className={cn(
-                      'cursor-pointer transition-all duration-200 border-b hover:bg-muted/40 align-top',
+                      'group cursor-pointer border-b border-border/60 align-top transition-colors duration-200 even:bg-muted/[0.18] hover:bg-muted/45',
                       {
-                        'bg-primary/10 hover:bg-primary/15 border-l-4 border-l-primary':
+                        'border-l-4 border-l-primary bg-primary/10 hover:bg-primary/15':
                           selectedPaper?.id === paper.id,
                       }
                     )}
@@ -102,7 +102,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                       {onStarToggle ? (
                         <button
                           type="button"
-                          className="inline-flex items-center justify-center rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                          className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-background/80 hover:text-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
                           onClick={() => onStarToggle(paper)}
                           aria-label={paper.starred ? 'Unstar paper' : 'Star paper'}
                         >
@@ -120,7 +120,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                     {/* Column 1: Title, below: year + cited by (cite icon + number) */}
                     <TableCell className="py-3">
                       <div>
-                        <div className="font-semibold text-sm leading-snug text-foreground">
+                        <div className="text-sm font-semibold leading-snug text-foreground">
                           {paper.title}
                         </div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-muted-foreground">
@@ -136,7 +136,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                     </TableCell>
 
                     {/* Column 2: Authors */}
-                    <TableCell className="py-3 text-xs text-muted-foreground align-top">
+                    <TableCell className="py-3 align-top text-xs text-muted-foreground">
                       {paper.authors?.length > 0 ? (
                         <span className="line-clamp-4" title={paper.authors.join(', ')}>
                           {paper.authors.join(', ')}
@@ -147,7 +147,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                     </TableCell>
 
                     {/* Column 3: First 3 lines of abstract */}
-                    <TableCell className="py-3 text-xs text-muted-foreground leading-relaxed align-top">
+                    <TableCell className="py-3 align-top text-xs leading-relaxed text-muted-foreground">
                       {paper.abstract?.trim() ? (
                         <p className="line-clamp-3" title={paper.abstract}>
                           {paper.abstract.trim()}
@@ -158,7 +158,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                     </TableCell>
 
                     {/* Column 4: Summary paragraph if available */}
-                    <TableCell className="py-3 text-xs text-muted-foreground align-top">
+                    <TableCell className="py-3 align-top text-xs text-muted-foreground">
                       {summaryPoints && summaryPoints.length > 0 ? (
                         <p className="line-clamp-4 leading-relaxed">
                           {summaryPoints.join(' ')}
@@ -169,7 +169,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                     </TableCell>
 
                     {/* Column 5: Source */}
-                    <TableCell className="py-3 text-xs text-muted-foreground align-top">
+                    <TableCell className="py-3 align-top text-xs text-muted-foreground">
                       {paper.source ? (
                         <span className="line-clamp-3" title={paper.source}>
                           {paper.source}
@@ -180,7 +180,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                     </TableCell>
 
                     {/* Column 6: Work type */}
-                    <TableCell className="py-3 text-xs text-muted-foreground align-top">
+                    <TableCell className="py-3 align-top text-xs text-muted-foreground">
                       {paper.typeOfWork ?? <span className="italic">—</span>}
                     </TableCell>
 
@@ -190,7 +190,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          className="h-8 w-8 rounded-md text-muted-foreground hover:bg-primary/10 hover:text-primary"
                           asChild
                         >
                           <a

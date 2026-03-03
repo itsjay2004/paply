@@ -140,8 +140,26 @@ export function PdfViewerWithHighlights({
     }
   };
 
-  const zoomIn = () => zoomPluginInstance.zoomTo(scale + 0.10);
-  const zoomOut = () => zoomPluginInstance.zoomTo(Math.max(0.5, scale - 0.10));
+  const ZOOM_DURATION_MS = 220;
+  const smoothZoomTo = useCallback(
+    (targetScale: number) => {
+      const startScale = scale;
+      const startTime = { current: 0 };
+      const step = (now: number) => {
+        if (startTime.current === 0) startTime.current = now;
+        const elapsed = now - startTime.current;
+        const t = Math.min(elapsed / ZOOM_DURATION_MS, 1);
+        const eased = 1 - (1 - t) * (1 - t);
+        const current = startScale + (targetScale - startScale) * eased;
+        zoomPluginInstance.zoomTo(current);
+        if (t < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    },
+    [scale]
+  );
+  const zoomIn = () => smoothZoomTo(Math.min(3, scale + 0.15));
+  const zoomOut = () => smoothZoomTo(Math.max(0.5, scale - 0.15));
 
   const renderHighlightTarget = useCallback(
     (props: RenderHighlightTargetProps) => {

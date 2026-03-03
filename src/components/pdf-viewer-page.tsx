@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, FileText, Highlighter, StickyNote, Loader2, MapPin, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { SavedHighlight } from '@/components/pdf-viewer-with-highlights';
@@ -250,32 +256,54 @@ export function PdfViewerPage({
         {sidebarOpen && (
         <aside className="w-80 shrink-0 border-l bg-card flex flex-col">
           <div className="flex border-b">
-            <button
-              type="button"
-              onClick={() => setActiveTab('highlights')}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors',
-                activeTab === 'highlights'
-                  ? 'border-b-2 border-primary text-primary bg-muted/50'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Highlighter className="h-4 w-4" />
-              Highlights
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('notes')}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors',
-                activeTab === 'notes'
-                  ? 'border-b-2 border-primary text-primary bg-muted/50'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <StickyNote className="h-4 w-4" />
-              Notes
-            </button>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('highlights')}
+                    className={cn(
+                      'flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-sm font-medium transition-colors',
+                      activeTab === 'highlights'
+                        ? 'border-b-2 border-primary text-primary bg-muted/50'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Highlighter className="h-4 w-4" />
+                      Highlights
+                    </span>
+                    <span className="text-[10px] font-normal opacity-80">Text you&apos;ve marked</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[200px]">
+                  <p>Saved text selections from the PDF. Select text, click Highlight, then view them here.</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('notes')}
+                    className={cn(
+                      'flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-sm font-medium transition-colors',
+                      activeTab === 'notes'
+                        ? 'border-b-2 border-primary text-primary bg-muted/50'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <StickyNote className="h-4 w-4" />
+                      Notes
+                    </span>
+                    <span className="text-[10px] font-normal opacity-80">Your annotations</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[200px]">
+                  <p>Free-form notes you add. Use the form below to create notes linked to this paper.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
           <ScrollArea className="flex-1">
@@ -370,7 +398,7 @@ export function PdfViewerPage({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="mt-1 h-7 text-xs text-muted-foreground hover:text-destructive"
+                              className="mt-1 h-7 text-xs text-muted-foreground hover:bg-destructive"
                               onClick={() => handleDeleteNote(n.id)}
                             >
                               Remove

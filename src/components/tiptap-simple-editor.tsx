@@ -12,6 +12,8 @@ import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
+import HorizontalRule from '@tiptap/extension-horizontal-rule';
+import { TableKit } from '@tiptap/extension-table';
 import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,6 +39,12 @@ import {
   ListTodo,
   Type,
   ChevronDown,
+  Subscript as SubscriptIcon,
+  Superscript as SuperscriptIcon,
+  Minus,
+  Table as TableIcon,
+  FileDown,
+  Loader2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -49,7 +57,7 @@ import { cn } from '@/lib/utils';
 const DEFAULT_DOC: JSONContent = { type: 'doc', content: [{ type: 'paragraph' }] };
 
 const EDITOR_CONTENT_CLASS =
-  'tiptap-note-editor min-h-[200px] px-3 py-2 focus:outline-none';
+  'tiptap-note-editor min-h-[200px] px-4 py-3 focus:outline-none';
 
 type ToolbarActiveState = {
   headingLevel: number;
@@ -131,7 +139,9 @@ export function TiptapSimpleEditor({
       Underline,
       Highlight.configure({
         multicolor: false,
-        HTMLAttributes: { class: 'bg-yellow-200 dark:bg-yellow-900/50 rounded px-0.5' },
+        HTMLAttributes: {
+          class: 'rounded px-0.5 bg-amber-200/90 dark:bg-amber-400/40',
+        },
       }),
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -144,6 +154,12 @@ export function TiptapSimpleEditor({
         HTMLAttributes: {
           class: 'flex items-start gap-2',
         },
+      }),
+      HorizontalRule.configure({
+        HTMLAttributes: { class: 'border-t border-border my-4' },
+      }),
+      TableKit.configure({
+        resizable: true,
       }),
     ],
     content: initialContent,
@@ -171,6 +187,7 @@ export function TiptapSimpleEditor({
   });
 
   const [active, setActive] = useState<ToolbarActiveState | null>(null);
+  const [exporting, setExporting] = useState<'pdf' | 'docx' | null>(null);
 
   useEffect(() => {
     if (!editor) return;
@@ -217,35 +234,85 @@ export function TiptapSimpleEditor({
     }
   };
 
+  const handleExportPdf = async () => {
+    setExporting('pdf');
+    try {
+      const html2pdf = (await import('html2pdf.js')).default;
+      const html = editor.getHTML();
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      container.style.padding = '24px';
+      container.style.fontFamily = 'inherit';
+      container.style.fontSize = '14px';
+      container.style.color = 'inherit';
+      container.style.backgroundColor = 'white';
+      container.style.minWidth = '400px';
+      document.body.appendChild(container);
+      await html2pdf().set({
+        margin: 12,
+        filename: 'note.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      }).from(container).save();
+      document.body.removeChild(container);
+    } catch (e) {
+      console.error('PDF export failed:', e);
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const handleExportDocx = async () => {
+    setExporting('docx');
+    try {
+      const html = editor.getHTML();
+      const res = await fetch('/api/export/docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html }),
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'note.docx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('DOCX export failed:', e);
+    } finally {
+      setExporting(null);
+    }
+  };
+
   return (
-    <div className={cn('rounded-md border bg-background', className)}>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b bg-muted/40 px-2 py-1.5">
-        <ToolbarButton
-          onClick={() => editor.chain().focus().undo().run()}
-          disabled={!a.canUndo}
-          title="Undo"
-        >
-          <Undo className="size-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().redo().run()}
-          disabled={!a.canRedo}
-          title="Redo"
-        >
-          <Redo className="size-4" />
-        </ToolbarButton>
+    <div className={cn('flex flex-col overflow-hidden rounded-xl border border-border/70 bg-background shadow-sm min-h-0', className)}>
+      <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1.5 rounded-t-xl border-b border-border/60 bg-muted/40 px-2.5 py-2">
+        {/* Group 1: History */}
+        <ToolbarGroup>
+          <ToolbarButton onClick={() => editor.chain().focus().undo().run()} disabled={!a.canUndo} title="Undo">
+            <Undo className="size-4" />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().redo().run()} disabled={!a.canRedo} title="Redo">
+            <Redo className="size-4" />
+          </ToolbarButton>
+        </ToolbarGroup>
+
         <ToolbarDivider />
 
-        {/* Heading dropdown */}
-        <DropdownMenu>
+        {/* Group 2: Text style */}
+        <ToolbarGroup>
+          <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               type="button"
               variant="ghost"
               size="icon"
               className={cn(
-                'size-8 px-6',
-                currentHeadingLevel !== 0 && 'bg-gray-400'
+                'size-8 px-6 transition-colors hover:bg-primary/10 hover:text-primary',
+                currentHeadingLevel !== 0 && 'bg-primary/15 text-primary'
               )}
               title="Text style"
             >
@@ -284,33 +351,33 @@ export function TiptapSimpleEditor({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </ToolbarGroup>
 
         <ToolbarDivider />
 
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          isActive={a.bulletList}
-          title="Bullet list"
-        >
-          <List className="size-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          isActive={a.orderedList}
-          title="Numbered list"
-        >
-          <ListOrdered className="size-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleTaskList().run()}
-          isActive={a.taskList}
-          title="Task list"
-        >
-          <ListTodo className="size-4" />
-        </ToolbarButton>
+        {/* Group 3: Lists & blocks */}
+        <ToolbarGroup>
+          <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={a.bulletList} title="Bullet list">
+            <List className="size-4" />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={a.orderedList} title="Numbered list">
+            <ListOrdered className="size-4" />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().toggleTaskList().run()} isActive={a.taskList} title="Task list">
+            <ListTodo className="size-4" />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Insert divider">
+            <Minus className="size-4" />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} title="Insert table">
+            <TableIcon className="size-4" />
+          </ToolbarButton>
+        </ToolbarGroup>
 
         <ToolbarDivider />
 
+        {/* Group 4: Formatting */}
+        <ToolbarGroup>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={a.bold}
@@ -372,18 +439,21 @@ export function TiptapSimpleEditor({
           isActive={a.subscript}
           title="Subscript"
         >
-          <span className="text-xs font-medium">x₂</span>
+          <SubscriptIcon className="size-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleSuperscript().run()}
           isActive={a.superscript}
           title="Superscript"
         >
-          <span className="text-xs font-medium">x²</span>
+          <SuperscriptIcon className="size-4" />
         </ToolbarButton>
+        </ToolbarGroup>
 
         <ToolbarDivider />
 
+        {/* Group 5: Alignment */}
+        <ToolbarGroup>
         <ToolbarButton
           onClick={() => editor.chain().focus().setTextAlign('left').run()}
           isActive={a.textAlign === 'left'}
@@ -412,16 +482,52 @@ export function TiptapSimpleEditor({
         >
           <AlignJustify className="size-4" />
         </ToolbarButton>
+        </ToolbarGroup>
+
+        <ToolbarDivider />
+
+        {/* Group 6: Export */}
+        <ToolbarGroup>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+                disabled={!!exporting}
+                title="Download as PDF or DOCX"
+              >
+                {exporting ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportPdf} disabled={!!exporting}>
+                Export as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportDocx} disabled={!!exporting}>
+                Export as DOCX
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </ToolbarGroup>
       </div>
-      <EditorContent editor={editor} />
+      <div className="flex-1 min-h-0 overflow-auto">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
+}
+
+function ToolbarGroup({ children }: { children: React.ReactNode }) {
+  return <div className="flex items-center gap-0.5">{children}</div>;
 }
 
 function ToolbarDivider() {
   return (
     <span
-      className="mx-1 w-px self-stretch bg-border"
+      className="mx-0.5 w-px self-stretch min-h-[1.25rem] bg-border"
+      role="separator"
       aria-hidden
     />
   );
@@ -445,7 +551,12 @@ function ToolbarButton({
       type="button"
       variant="ghost"
       size="icon"
-      className={cn('size-8', isActive && 'bg-gray-400')}
+      className={cn(
+        'size-8 rounded-lg transition-colors',
+        'hover:bg-primary/10 hover:text-primary',
+        'disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-inherit',
+        isActive && 'bg-primary/15 text-primary hover:bg-primary/20'
+      )}
       onClick={(e) => {
         e.preventDefault();
         onClick();
