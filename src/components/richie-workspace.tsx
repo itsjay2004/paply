@@ -428,7 +428,7 @@ export function RichieWorkspace({ embedded = false }: RichieWorkspaceProps = {})
       setPapers((prev) => [paper, ...prev]);
       setSelectedPaper(paper);
     }
-    setImportDialogOpen(false);
+    // Note: dialog manages its own close — no setImportDialogOpen(false) here
   };
 
   /** 

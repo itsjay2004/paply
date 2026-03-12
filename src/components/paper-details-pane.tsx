@@ -456,7 +456,7 @@ export function PaperDetailsPane({
                 {paper.pdfUrl ? (
                   <>
                     <Button asChild size="sm" className="h-8 rounded-lg gap-2 px-4">
-                      <a href={`/papers/${paper.id}/view`}>
+                      <a href={`/papers/${paper.id}/view`} target="_blank" rel="noopener noreferrer">
                         <FileText className="h-3.5 w-3.5" />
                         View PDF
                       </a>
