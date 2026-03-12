@@ -3,16 +3,10 @@
 import { useState } from 'react';
 import type { Paper } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Quote, Search, Star } from 'lucide-react';
+import { ExternalLink, Quote, Search, Star, FileText, BookOpen } from 'lucide-react';
 
 interface PaperListProps {
   papers: Paper[];
@@ -22,212 +16,217 @@ interface PaperListProps {
   onStarToggle?: (paper: Paper) => void;
 }
 
-export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onStarToggle }: PaperListProps) {
+export function PaperList({ papers, summaries: _summaries, selectedPaper, onSelectPaper, onStarToggle }: PaperListProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredPapers = papers.filter(
     (paper) =>
       paper.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       paper.authors.some((a) => a.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (paper.abstract?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
       (paper.source?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
       (paper.typeOfWork?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
   );
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 border-r border-border/70 bg-background/70 backdrop-blur-sm overflow-hidden">
-      {/* Search bar — pinned */}
-      <div className="shrink-0 border-b border-border/70 bg-background/90 px-4 py-3 backdrop-blur-md">
-        <div className="relative rounded-xl border border-border/60 bg-muted/30 p-2 shadow-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+    <div className="flex flex-1 flex-col min-h-0 border-r border-border/70 bg-background overflow-hidden">
+
+      {/* ── Search bar ──────────────────────────────────────────────── */}
+      <div className="shrink-0 px-4 py-3 border-b border-border/60 bg-background">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
           <Input
-            placeholder="Search by title, authors, abstract, source…"
-            className="h-9 border-muted bg-background/90 pl-10 transition-all focus-visible:ring-2 focus-visible:ring-primary/40"
+            placeholder="Search papers…"
+            className="h-9 pl-9 bg-muted/30 border-border/50 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/30 text-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      {/* Scrollable table — single native scroll context */}
-      <div className="flex-1 min-h-0 overflow-auto">
-        <table className="w-full min-w-[1100px] caption-bottom text-sm">
-          <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border/70 shadow-sm">
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="h-11 w-[52px] text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Star
-              </TableHead>
-              <TableHead className="h-11 min-w-[200px] text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Title
-              </TableHead>
-              <TableHead className="h-11 min-w-[170px] text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Authors
-              </TableHead>
-              <TableHead className="h-11 min-w-[180px] text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Abstract
-              </TableHead>
-              <TableHead className="h-11 min-w-[280px] text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Summary
-              </TableHead>
-              <TableHead className="h-11 w-[130px] text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Source
-              </TableHead>
-              <TableHead className="h-11 w-[110px] text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Work type
-              </TableHead>
-              <TableHead className="h-11 w-[78px] text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Landing
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody className="[&_tr:last-child]:border-b">
-            {filteredPapers.length > 0 ? (
-              filteredPapers.map((paper) => {
-                const landingUrl = paper.landingPageUrl || paper.paperUrl || null;
-                const summaryPoints = summaries[paper.id] ?? paper.summary;
-                return (
-                  <TableRow
-                    key={paper.id}
-                    className={cn(
-                      'group cursor-pointer border-b border-border/60 align-top transition-colors duration-200 even:bg-muted/[0.18] hover:bg-muted/45',
-                      {
-                        'border-l-4 border-l-primary bg-primary/10 hover:bg-primary/15':
-                          selectedPaper?.id === paper.id,
-                      }
+      {/* ── Column header ───────────────────────────────────────────── */}
+      <div className="shrink-0 grid grid-cols-[44px_1fr_auto] items-center gap-3 px-4 py-2 border-b border-border/60 bg-muted/20">
+        <div />
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+          Paper
+        </span>
+        <div className="flex items-center gap-6 pr-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+          <span className="w-10 text-center">Year</span>
+          <span className="w-24 text-center">Type</span>
+          <span className="w-16 text-center">Citations</span>
+          <span className="w-8 text-center">URL</span>
+        </div>
+      </div>
+
+      {/* ── Paper rows ──────────────────────────────────────────────── */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {filteredPapers.length > 0 ? (
+          <ul className="divide-y divide-border/50">
+            {filteredPapers.map((paper) => {
+              const landingUrl = paper.landingPageUrl || paper.paperUrl || null;
+              const isSelected = selectedPaper?.id === paper.id;
+
+              return (
+                <li
+                  key={paper.id}
+                  onClick={() => onSelectPaper(paper)}
+                  className={cn(
+                    'group grid grid-cols-[44px_1fr_auto] items-start gap-3 px-4 py-4 cursor-pointer transition-colors duration-150',
+                    isSelected
+                      ? 'bg-primary/8 border-l-[3px] border-l-primary pl-[13px]'
+                      : 'border-l-[3px] border-l-transparent hover:bg-muted/40 pl-[13px]'
+                  )}
+                >
+                  {/* Star */}
+                  <div className="pt-0.5 flex justify-center" onClick={(e) => e.stopPropagation()}>
+                    {onStarToggle ? (
+                      <button
+                        type="button"
+                        onClick={() => onStarToggle(paper)}
+                        aria-label={paper.starred ? 'Unstar' : 'Star'}
+                        className={cn(
+                          'rounded-md p-1 transition-colors',
+                          paper.starred
+                            ? 'text-amber-500'
+                            : 'text-muted-foreground/30 hover:text-amber-400'
+                        )}
+                      >
+                        <Star className={cn('h-4 w-4', paper.starred && 'fill-amber-500')} />
+                      </button>
+                    ) : (
+                      <Star
+                        className={cn('h-4 w-4 mt-1', paper.starred ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground/25')}
+                        aria-hidden
+                      />
                     )}
-                    onClick={() => onSelectPaper(paper)}
-                  >
-                    {/* Column 0: Star */}
-                    <TableCell className="py-3 text-center align-top" onClick={(e) => e.stopPropagation()}>
-                      {onStarToggle ? (
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-background/80 hover:text-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                          onClick={() => onStarToggle(paper)}
-                          aria-label={paper.starred ? 'Unstar paper' : 'Star paper'}
+                  </div>
+
+                  {/* Main content */}
+                  <div className="min-w-0 space-y-1.5">
+                    {/* Title */}
+                    <p className={cn(
+                      'text-sm font-semibold leading-snug line-clamp-2 break-words',
+                      isSelected ? 'text-foreground' : 'text-foreground/90 group-hover:text-foreground'
+                    )}>
+                      {paper.title || <span className="italic text-muted-foreground">Untitled</span>}
+                    </p>
+
+                    {/* Authors */}
+                    {paper.authors && paper.authors.length > 0 && (
+                      <p className="text-xs text-muted-foreground line-clamp-1">
+                        {paper.authors.join(' · ')}
+                      </p>
+                    )}
+
+                    {/* Source */}
+                    {paper.source && (
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground/70 italic line-clamp-1 text-green-500">
+                        <BookOpen className="h-3 w-3 shrink-0 not-italic opacity-60" />
+                        {paper.source}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Right meta column */}
+                  <div className="flex items-start gap-6 pt-0.5 shrink-0">
+
+                    {/* Year */}
+                    <div className="w-10 flex justify-center">
+                      {paper.year > 0 ? (
+                        <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                          {paper.year}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/30">—</span>
+                      )}
+                    </div>
+
+                    {/* Work type */}
+                    <div className="w-24 flex justify-center">
+                      {paper.typeOfWork ? (
+                        <Badge
+                          variant="secondary"
+                          className="rounded-full text-[10px] font-medium px-2 py-0.5 max-w-full truncate"
+                          title={paper.typeOfWork}
                         >
-                          <Star
-                            className={cn('h-4 w-4', paper.starred && 'fill-amber-500 text-amber-500')}
-                          />
-                        </button>
+                          <FileText className="h-2.5 w-2.5 shrink-0 mr-1" />
+                          <span className="truncate">{paper.typeOfWork}</span>
+                        </Badge>
                       ) : (
-                        <Star
-                          className={cn('h-4 w-4', paper.starred ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground/50')}
-                          aria-hidden
-                        />
+                        <span className="text-xs text-muted-foreground/30">—</span>
                       )}
-                    </TableCell>
+                    </div>
 
-                    {/* Column 1: Title */}
-                    <TableCell className="py-3">
-                      <div>
-                        <div className="text-sm font-semibold leading-snug text-foreground">
-                          {paper.title}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-muted-foreground">
-                          {paper.year > 0 && <span>{paper.year}</span>}
-                          {paper.citedByCount != null && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 font-bold">
-                              <Quote className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                              {paper.citedByCount}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-
-                    {/* Column 2: Authors */}
-                    <TableCell className="py-3 align-top text-xs text-muted-foreground">
-                      {paper.authors?.length > 0 ? (
-                        <span className="line-clamp-4" title={paper.authors.join(', ')}>
-                          {paper.authors.join(', ')}
-                        </span>
+                    {/* Citations */}
+                    <div className="w-16 flex justify-center">
+                      {paper.citedByCount != null && paper.citedByCount > 0 ? (
+                        <Badge
+                          className="rounded-full text-[10px] font-semibold px-2 py-0.5 gap-0.5 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15"
+                        >
+                          <Quote className="h-2.5 w-2.5 shrink-0" />
+                          {paper.citedByCount >= 1000
+                            ? `${(paper.citedByCount / 1000).toFixed(1)}k`
+                            : paper.citedByCount}
+                        </Badge>
                       ) : (
-                        <span className="italic">—</span>
+                        <span className="text-xs text-muted-foreground/30">—</span>
                       )}
-                    </TableCell>
+                    </div>
 
-                    {/* Column 3: Abstract */}
-                    <TableCell className="py-3 align-top text-xs leading-relaxed text-muted-foreground">
-                      {paper.abstract?.trim() ? (
-                        <p className="line-clamp-3" title={paper.abstract}>
-                          {paper.abstract.trim()}
-                        </p>
-                      ) : (
-                        <span className="italic">—</span>
-                      )}
-                    </TableCell>
-
-                    {/* Column 4: Summary */}
-                    <TableCell className="py-3 align-top text-xs text-muted-foreground">
-                      {summaryPoints && summaryPoints.length > 0 ? (
-                        <p className="line-clamp-4 leading-relaxed">
-                          {summaryPoints.join(' ')}
-                        </p>
-                      ) : (
-                        <span className="italic">—</span>
-                      )}
-                    </TableCell>
-
-                    {/* Column 5: Source */}
-                    <TableCell className="py-3 align-top text-xs text-muted-foreground">
-                      {paper.source ? (
-                        <span className="line-clamp-3" title={paper.source}>
-                          {paper.source}
-                        </span>
-                      ) : (
-                        <span className="italic">—</span>
-                      )}
-                    </TableCell>
-
-                    {/* Column 6: Work type */}
-                    <TableCell className="py-3 align-top text-xs text-muted-foreground">
-                      {paper.typeOfWork ?? <span className="italic">—</span>}
-                    </TableCell>
-
-                    {/* Column 7: Landing page link */}
-                    <TableCell className="py-3 text-center align-top">
+                    {/* URL */}
+                    <div className="w-8 flex justify-center" onClick={(e) => e.stopPropagation()}>
                       {landingUrl ? (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-md text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                          className="h-7 w-7 rounded-md text-muted-foreground/50 hover:text-primary hover:bg-primary/10"
                           asChild
                         >
                           <a
                             href={landingUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            aria-label="Open landing page"
+                            aria-label="Open URL"
                           >
-                            <ExternalLink className="h-4 w-4" />
+                            <ExternalLink className="h-3.5 w-3.5" />
                           </a>
                         </Button>
                       ) : (
-                        <span className="text-muted-foreground/50">—</span>
+                        <span className="text-muted-foreground/30 text-xs">—</span>
                       )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            ) : (
-              <TableRow>
-                <TableCell colSpan={8} className="h-32 text-center">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <p className="font-medium">No papers match your search.</p>
-                    <p className="text-sm">
-                      {searchTerm
-                        ? 'Try a different search term or clear the search.'
-                        : 'Click "Import" to add your first paper.'}
-                    </p>
+                    </div>
                   </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </table>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          /* Empty state */
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground py-24">
+            <div className="rounded-full bg-muted/50 p-4">
+              <Search className="h-6 w-6 opacity-40" />
+            </div>
+            <p className="font-medium text-sm">
+              {searchTerm ? 'No papers match your search' : 'No papers yet'}
+            </p>
+            <p className="text-xs text-muted-foreground/60 max-w-[220px] text-center">
+              {searchTerm
+                ? 'Try a different term or clear the search.'
+                : 'Click "Import" to add your first paper.'}
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* ── Footer count ────────────────────────────────────────────── */}
+      {papers.length > 0 && (
+        <div className="shrink-0 border-t border-border/60 bg-muted/10 px-4 py-2">
+          <p className="text-[11px] text-muted-foreground/60">
+            {searchTerm
+              ? `${filteredPapers.length} of ${papers.length} papers`
+              : `${papers.length} paper${papers.length !== 1 ? 's' : ''}`}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
