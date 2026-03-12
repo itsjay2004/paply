@@ -4,7 +4,6 @@ import { useState } from 'react';
 import type { Paper } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -14,7 +13,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Quote, Search, Star } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface PaperListProps {
   papers: Paper[];
@@ -37,7 +35,8 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
   );
 
   return (
-    <div className="flex h-full flex-col border-r border-border/70 bg-background/70 backdrop-blur-sm">
+    <div className="flex flex-1 flex-col min-h-0 border-r border-border/70 bg-background/70 backdrop-blur-sm overflow-hidden">
+      {/* Search bar — pinned */}
       <div className="shrink-0 border-b border-border/70 bg-background/90 px-4 py-3 backdrop-blur-md">
         <div className="relative rounded-xl border border-border/60 bg-muted/30 p-2 shadow-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -50,8 +49,9 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
         </div>
       </div>
 
-      <ScrollArea className="flex-1 min-h-0">
-        <Table className="min-w-[1100px]">
+      {/* Scrollable table — single native scroll context */}
+      <div className="flex-1 min-h-0 overflow-auto">
+        <table className="w-full min-w-[1100px] caption-bottom text-sm">
           <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border/70 shadow-sm">
             <TableRow className="hover:bg-transparent">
               <TableHead className="h-11 w-[52px] text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
@@ -117,7 +117,8 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                         />
                       )}
                     </TableCell>
-                    {/* Column 1: Title, below: year + cited by (cite icon + number) */}
+
+                    {/* Column 1: Title */}
                     <TableCell className="py-3">
                       <div>
                         <div className="text-sm font-semibold leading-snug text-foreground">
@@ -146,7 +147,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                       )}
                     </TableCell>
 
-                    {/* Column 3: First 3 lines of abstract */}
+                    {/* Column 3: Abstract */}
                     <TableCell className="py-3 align-top text-xs leading-relaxed text-muted-foreground">
                       {paper.abstract?.trim() ? (
                         <p className="line-clamp-3" title={paper.abstract}>
@@ -157,7 +158,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                       )}
                     </TableCell>
 
-                    {/* Column 4: Summary paragraph if available */}
+                    {/* Column 4: Summary */}
                     <TableCell className="py-3 align-top text-xs text-muted-foreground">
                       {summaryPoints && summaryPoints.length > 0 ? (
                         <p className="line-clamp-4 leading-relaxed">
@@ -184,7 +185,7 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
                       {paper.typeOfWork ?? <span className="italic">—</span>}
                     </TableCell>
 
-                    {/* Column 7: Landing – external link to landing_page_url */}
+                    {/* Column 7: Landing page link */}
                     <TableCell className="py-3 text-center align-top">
                       {landingUrl ? (
                         <Button
@@ -225,8 +226,8 @@ export function PaperList({ papers, summaries, selectedPaper, onSelectPaper, onS
               </TableRow>
             )}
           </TableBody>
-        </Table>
-      </ScrollArea>
+        </table>
+      </div>
     </div>
   );
 }

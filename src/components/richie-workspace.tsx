@@ -144,7 +144,7 @@ function RichieWorkspaceLayout({
         ) : (
           <>
             {/* Main Content Area: Grid of paper cards */}
-            <main className={cn('flex-1 grid overflow-hidden', 'grid-cols-1')}>
+            <main className="flex-1 flex flex-col overflow-hidden">
               <PaperList
                 papers={displayedPapers}
                 summaries={summaries}
