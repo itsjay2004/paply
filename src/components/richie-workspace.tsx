@@ -64,10 +64,14 @@ function RichieWorkspaceLayout({
   onPaperPersist,
   onPaperDelete,
   onCollectionCreate,
+  onCollectionRename,
+  onCollectionDelete,
   isImportDialogOpen,
   setImportDialogOpen,
   onPaperImported,
   onStarToggle,
+  onBulkDelete,
+  onBulkAddToCollection,
   activeView,
   selectedCollectionId,
   onNavigate,
@@ -83,10 +87,14 @@ function RichieWorkspaceLayout({
   onPaperPersist: (paper: Paper) => Promise<void>;
   onPaperDelete: (paperId: string) => void;
   onCollectionCreate: (name: string) => Promise<void>;
+  onCollectionRename: (id: string, name: string) => Promise<void>;
+  onCollectionDelete: (id: string) => Promise<void>;
   isImportDialogOpen: boolean;
   setImportDialogOpen: (open: boolean) => void;
   onPaperImported: (paper: Omit<Paper, 'id'>) => void;
   onStarToggle: (paper: Paper) => void;
+  onBulkDelete: (paperIds: string[]) => Promise<void>;
+  onBulkAddToCollection: (paperIds: string[], collectionId: string) => Promise<void>;
   activeView: SidebarView;
   selectedCollectionId: string | null;
   onNavigate: (view: SidebarView, collectionId?: string) => void;
@@ -149,8 +157,11 @@ function RichieWorkspaceLayout({
                 papers={displayedPapers}
                 summaries={summaries}
                 selectedPaper={selectedPaper}
+                collections={collections}
                 onSelectPaper={onSelectPaper}
                 onStarToggle={onStarToggle}
+                onBulkDelete={onBulkDelete}
+                onBulkAddToCollection={onBulkAddToCollection}
               />
             </main>
           </>
@@ -195,6 +206,8 @@ function RichieWorkspaceLayout({
         <LeftSidebarContent
           collections={collections}
           onCollectionCreate={onCollectionCreate}
+          onCollectionRename={onCollectionRename}
+          onCollectionDelete={onCollectionDelete}
           activeView={activeView}
           selectedCollectionId={selectedCollectionId}
           onNavigate={onNavigate}
@@ -435,6 +448,44 @@ export function RichieWorkspace({ embedded = false }: RichieWorkspaceProps = {})
   };
 
   /**
+   * Bulk-deletes multiple papers by their IDs.
+   */
+  const handleBulkDelete = async (paperIds: string[]) => {
+    await Promise.all(
+      paperIds.map((id) =>
+        fetch(`/api/papers/${id}`, { method: 'DELETE' })
+      )
+    );
+    setPapers((prev) => prev.filter((p) => !paperIds.includes(p.id)));
+    if (selectedPaper && paperIds.includes(selectedPaper.id)) {
+      setSelectedPaper(null);
+    }
+  };
+
+  /**
+   * Moves multiple papers into a collection by patching their collection_id.
+   */
+  const handleBulkAddToCollection = async (paperIds: string[], collectionId: string) => {
+    await Promise.all(
+      paperIds.map((id) =>
+        fetch(`/api/papers/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ collection_id: collectionId }),
+        })
+      )
+    );
+    setPapers((prev) =>
+      prev.map((p) =>
+        paperIds.includes(p.id) ? { ...p, collection_id: collectionId } : p
+      )
+    );
+    if (selectedPaper && paperIds.includes(selectedPaper.id)) {
+      setSelectedPaper((prev) => prev ? { ...prev, collection_id: collectionId } : prev);
+    }
+  };
+
+  /**
    * Toggle a paper's starred state and persist to the API.
    */
   const handleStarToggle = async (paper: Paper) => {
@@ -454,6 +505,32 @@ export function RichieWorkspace({ embedded = false }: RichieWorkspaceProps = {})
     } catch (error) {
       console.error('Error toggling star:', error);
       handlePaperUpdate(paper); // revert on error
+    }
+  };
+
+  /**
+   * Renames a collection by ID.
+   */
+  const handleCollectionRename = async (id: string, name: string) => {
+    const response = await fetch(`/api/collections/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!response.ok) throw new Error('Failed to rename collection');
+    setCollections(prev => prev.map(c => c.id === id ? { ...c, name } : c));
+  };
+
+  /**
+   * Deletes a collection by ID. Papers in the collection are not deleted.
+   */
+  const handleCollectionDelete = async (id: string) => {
+    const response = await fetch(`/api/collections/${id}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Failed to delete collection');
+    setCollections(prev => prev.filter(c => c.id !== id));
+    // If currently viewing the deleted collection, navigate back to all papers
+    if (activeView === 'collection' && selectedCollectionId === id) {
+      handleNavigate('all');
     }
   };
 
@@ -494,10 +571,14 @@ export function RichieWorkspace({ embedded = false }: RichieWorkspaceProps = {})
       onPaperPersist={handlePaperPersist}
       onPaperDelete={handlePaperDelete}
       onCollectionCreate={handleCollectionCreate}
+      onCollectionRename={handleCollectionRename}
+      onCollectionDelete={handleCollectionDelete}
       isImportDialogOpen={isImportDialogOpen}
       setImportDialogOpen={setImportDialogOpen}
       onPaperImported={handlePaperImport}
       onStarToggle={handleStarToggle}
+      onBulkDelete={handleBulkDelete}
+      onBulkAddToCollection={handleBulkAddToCollection}
       activeView={activeView}
       selectedCollectionId={selectedCollectionId}
       onNavigate={handleNavigate}

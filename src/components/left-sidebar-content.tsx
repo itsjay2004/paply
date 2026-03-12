@@ -12,10 +12,27 @@ import {
 } from '@/components/ui/sidebar';
 import Image from 'next/image';
 import { Button } from './ui/button';
-import { BookMarked, Folder, HelpCircle, Library, LogOut, Moon, Plus, Settings, Star, Sun, User } from 'lucide-react';
+import { BookMarked, Check, Folder, HelpCircle, Library, LogOut, Moon, MoreHorizontal, Pencil, Plus, Settings, Star, Sun, Trash2, User, X } from 'lucide-react';
 import type { Collection } from '@/lib/types';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
@@ -28,18 +45,25 @@ export type SidebarView = 'all' | 'starred' | 'collection' | 'notebook';
 export function LeftSidebarContent({
   collections,
   onCollectionCreate,
+  onCollectionRename,
+  onCollectionDelete,
   activeView,
   selectedCollectionId,
   onNavigate,
 }: {
   collections: Collection[];
   onCollectionCreate: (name: string) => Promise<void>;
+  onCollectionRename: (id: string, name: string) => Promise<void>;
+  onCollectionDelete: (id: string) => Promise<void>;
   activeView: SidebarView;
   selectedCollectionId: string | null;
   onNavigate: (view: SidebarView, collectionId?: string) => void;
 }) {
   const [newCollectionName, setNewCollectionName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const leaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user } = useUser();
@@ -70,6 +94,28 @@ export function LeftSidebarContent({
     }
   };
 
+  const startEditing = (collection: Collection) => {
+    setEditingId(collection.id);
+    setEditingName(collection.name);
+  };
+
+  const commitRename = async () => {
+    if (!editingId) return;
+    const trimmed = editingName.trim();
+    if (trimmed && trimmed !== collections.find(c => c.id === editingId)?.name) {
+      await onCollectionRename(editingId, trimmed);
+    }
+    setEditingId(null);
+  };
+
+  const cancelEditing = () => setEditingId(null);
+
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+    await onCollectionDelete(deletingId);
+    setDeletingId(null);
+  };
+
   return (
     <>
       <SidebarHeader>
@@ -92,7 +138,7 @@ export function LeftSidebarContent({
               onClick={() => onNavigate('all')}
             >
               <Library />
-              <span>All Papers</span>
+              <span className="font-heading">All Papers</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -102,7 +148,7 @@ export function LeftSidebarContent({
               onClick={() => onNavigate('starred')}
             >
               <Star />
-              <span>Starred</span>
+              <span className="font-heading">Starred</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -112,14 +158,14 @@ export function LeftSidebarContent({
               onClick={() => onNavigate('notebook')}
             >
               <BookMarked />
-              <span>Notebook</span>
+              <span className="font-heading">Notebook</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
 
         <SidebarGroup className="mt-4">
           <SidebarGroupLabel className="flex items-center">
-            <span className="flex-1">Collections</span>
+            <span className="flex-1 font-heading">Collections</span>
             <Button variant="ghost" size="icon" className="size-6" onClick={() => setIsCreating(!isCreating)}>
               <Plus className="size-4" />
             </Button>
@@ -143,15 +189,78 @@ export function LeftSidebarContent({
               )}
               {collections.map(collection => (
                 <SidebarMenuItem key={collection.id}>
-                  <SidebarMenuButton
-                    tooltip={collection.name}
-                    isActive={activeView === 'collection' && selectedCollectionId === collection.id}
-                    onClick={() => onNavigate('collection', collection.id)}
-                  >
-                    <Folder />
-                    <span className="flex-1">{collection.name}</span>
-                    <Badge variant="secondary" className='group-data-[collapsible=icon]:hidden'>{collection.paperCount}</Badge>
-                  </SidebarMenuButton>
+                  {editingId === collection.id ? (
+                    /* ── Inline rename input ── */
+                    <div className="flex items-center gap-1 px-2 py-1">
+                      <Folder className="size-4 shrink-0 text-muted-foreground" />
+                      <Input
+                        autoFocus
+                        value={editingName}
+                        onChange={e => setEditingName(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+                          if (e.key === 'Escape') cancelEditing();
+                        }}
+                        onBlur={commitRename}
+                        className="h-7 flex-1 text-sm px-1 py-0 border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/40"
+                      />
+                      <button type="button" onClick={commitRename} className="text-muted-foreground hover:text-foreground p-0.5 rounded">
+                        <Check className="size-3.5" />
+                      </button>
+                      <button type="button" onClick={cancelEditing} className="text-muted-foreground hover:text-foreground p-0.5 rounded">
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    /* ── Normal row with hover actions ── */
+                    <div className="group/item flex items-center w-full rounded-md">
+                      <SidebarMenuButton
+                        tooltip={collection.name}
+                        isActive={activeView === 'collection' && selectedCollectionId === collection.id}
+                        onClick={() => onNavigate('collection', collection.id)}
+                        className="flex-1 min-w-0"
+                      >
+                        <Folder />
+                        <span className="flex-1 font-heading truncate">{collection.name}</span>
+                        <Badge variant="secondary" className="group-data-[collapsible=icon]:hidden shrink-0">
+                          {collection.paperCount}
+                        </Badge>
+                      </SidebarMenuButton>
+
+                      {/* ··· dropdown — visible on hover */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={e => e.stopPropagation()}
+                            className={cn(
+                              'ml-0.5 shrink-0 rounded-md p-1 text-muted-foreground/50',
+                              'opacity-0 group-hover/item:opacity-100 transition-opacity',
+                              'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                              'group-data-[collapsible=icon]:hidden',
+                            )}
+                            aria-label="Collection options"
+                          >
+                            <MoreHorizontal className="size-3.5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="right" align="start" className="w-40">
+                          <DropdownMenuItem onClick={() => startEditing(collection)}>
+                            <Pencil className="size-3.5 mr-2" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            onClick={() => setDeletingId(collection.id)}
+                          >
+                            <Trash2 className="size-3.5 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -279,6 +388,28 @@ export function LeftSidebarContent({
           </div>
         </SidebarFooter>
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deletingId} onOpenChange={open => { if (!open) setDeletingId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete collection?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{collections.find(c => c.id === deletingId)?.name}" will be permanently deleted.
+              Papers inside it will not be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

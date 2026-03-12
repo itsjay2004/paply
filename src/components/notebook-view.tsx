@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import type { NotebookNote } from '@/lib/types';
 import { TiptapSimpleEditor } from '@/components/tiptap-simple-editor';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, Trash2, FileText, PanelLeftClose, PanelLeft, BookOpen, Check, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -14,6 +15,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 function apiRowToNotebookNote(row: Record<string, unknown>): NotebookNote {
   return {
@@ -51,8 +62,17 @@ export function NotebookView() {
   const [selectedNote, setSelectedNote] = useState<NotebookNote | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [titleSaving, setTitleSaving] = useState(false);
+  const [deletingNote, setDeletingNote] = useState<NotebookNote | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [listOpen, setListOpen] = useState(true);
+
+  // Helper to select a note and sync the title draft
+  const selectNote = useCallback((note: NotebookNote | null) => {
+    setSelectedNote(note);
+    setTitleDraft(note?.title ?? '');
+  }, []);
 
   const fetchNotes = useCallback(async () => {
     setLoading(true);
@@ -68,9 +88,9 @@ export function NotebookView() {
       const nextNotes = list.map((row: Record<string, unknown>) => apiRowToNotebookNote(row));
       setNotes(nextNotes);
       setSelectedNote((prev) => {
-        if (nextNotes.length === 0) return null;
-        if (prev && nextNotes.some((n) => n.id === prev.id)) return prev;
-        return nextNotes[0];
+        const next = nextNotes.length === 0 ? null : (prev && nextNotes.some((n) => n.id === prev.id) ? prev : nextNotes[0]);
+        setTitleDraft(next?.title ?? '');
+        return next;
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load notes');
@@ -98,7 +118,7 @@ export function NotebookView() {
       if (!res.ok) throw new Error(data?.error ?? 'Failed to create note');
       const note = apiRowToNotebookNote(Array.isArray(data) ? data[0] : data);
       setNotes((prev) => [note, ...prev]);
-      setSelectedNote(note);
+      selectNote(note);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create note');
     } finally {
@@ -106,21 +126,22 @@ export function NotebookView() {
     }
   }, []);
 
-  const handleDeleteNote = useCallback(
+  const confirmDeleteNote = useCallback(
     async (note: NotebookNote) => {
+      setDeletingNote(null);
       try {
         const res = await fetch(`/api/notebook-notes/${note.id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Failed to delete note');
-        setNotes((prev) => prev.filter((n) => n.id !== note.id));
+        const remaining = notes.filter((n) => n.id !== note.id);
+        setNotes(remaining);
         if (selectedNote?.id === note.id) {
-          const rest = notes.filter((n) => n.id !== note.id);
-          setSelectedNote(rest[0] ?? null);
+          selectNote(remaining[0] ?? null);
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to delete note');
       }
     },
-    [notes, selectedNote]
+    [notes, selectedNote, selectNote]
   );
 
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -164,6 +185,30 @@ export function NotebookView() {
     [selectedNote, flushSave]
   );
 
+  const handleTitleSave = useCallback(async () => {
+    if (!selectedNote) return;
+    const trimmed = titleDraft.trim();
+    // No-op if unchanged
+    if ((trimmed || null) === (selectedNote.title ?? null)) return;
+    setTitleSaving(true);
+    try {
+      const res = await fetch(`/api/notebook-notes/${selectedNote.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: trimmed || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? 'Failed to save title');
+      const updated = apiRowToNotebookNote(Array.isArray(data) ? data[0] : data);
+      setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+      setSelectedNote(updated);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save title');
+    } finally {
+      setTitleSaving(false);
+    }
+  }, [selectedNote, titleDraft]);
+
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -204,28 +249,29 @@ export function NotebookView() {
           </Button>
         </div>
         <ScrollArea className="flex-1">
-          <div className="space-y-0.5 p-2">
+          <div className="w-full space-y-0.5 p-2">
             {notes.length === 0 && (
               <p className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
                 No notes yet. Create one to start.
               </p>
             )}
             {notes.map((note) => {
-              const preview = note.title?.trim() || getPreviewFromContent(note.content);
+              const rawPreview = note.title?.trim() || getPreviewFromContent(note.content);
+              const preview = rawPreview.length > 28 ? rawPreview.slice(0, 28) + '…' : rawPreview;
               const isSelected = selectedNote?.id === note.id;
               return (
                 <div
                   key={note.id}
                   className={cn(
-                    'group flex items-start gap-2 rounded-lg py-2 pr-2.5 pl-2.5 text-left transition-colors',
+                    'group flex min-w-0 w-full items-center gap-2 overflow-hidden rounded-lg py-2 pr-2.5 pl-2.5 text-left transition-colors',
                     'hover:bg-muted/60',
                     isSelected && 'border-l-2 border-l-primary bg-primary/10 pl-3'
                   )}
                 >
                   <button
                     type="button"
-                    className="min-w-0 flex-1 text-left"
-                    onClick={() => setSelectedNote(note)}
+                    className="min-w-0 flex-1 overflow-hidden text-left"
+                    onClick={() => selectNote(note)}
                   >
                     <span className="block truncate text-sm font-medium">{preview}</span>
                     <span className="block truncate text-xs text-muted-foreground">
@@ -235,10 +281,10 @@ export function NotebookView() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-7 rounded-md opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
+                    className="size-7 shrink-0 rounded-md opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDeleteNote(note);
+                      setDeletingNote(note);
                     }}
                     title="Delete note"
                   >
@@ -301,7 +347,35 @@ export function NotebookView() {
           </div>
         )}
         {selectedNote ? (
-          <div className="flex flex-1 flex-col min-h-0 p-6">
+          <div className="flex flex-1 flex-col min-h-0 overflow-y-auto p-6 gap-4">
+            {/* Editable title */}
+            <div className="relative group/title flex items-center">
+              <Input
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onBlur={handleTitleSave}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    (e.target as HTMLInputElement).blur();
+                  }
+                  if (e.key === 'Escape') {
+                    setTitleDraft(selectedNote.title ?? '');
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+                placeholder="Untitled note"
+                className={cn(
+                  'h-auto border-0 border-b border-transparent bg-transparent px-0 py-1 text-2xl font-bold shadow-none outline-none ring-0',
+                  'placeholder:text-muted-foreground/40 focus-visible:border-b-primary/50 focus-visible:ring-0',
+                  'transition-colors duration-150'
+                )}
+                disabled={titleSaving}
+              />
+              {titleSaving && (
+                <Loader2 className="absolute right-0 size-3.5 animate-spin text-muted-foreground" />
+              )}
+            </div>
             <TiptapSimpleEditor
               key={selectedNote.id}
               content={selectedNote.content}
@@ -335,6 +409,34 @@ export function NotebookView() {
           </div>
         )}
       </main>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deletingNote} onOpenChange={(open) => { if (!open) setDeletingNote(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete note?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingNote && (
+                <>
+                  <span className="font-medium text-foreground">
+                    &ldquo;{deletingNote.title?.trim() || getPreviewFromContent(deletingNote.content)}&rdquo;
+                  </span>{' '}
+                  will be permanently deleted. This action cannot be undone.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deletingNote && confirmDeleteNote(deletingNote)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -435,9 +435,9 @@ export function PaperDetailsPane({
                     </span>
                   )}
                   {paper.citedByCount ? (
-                    <Badge className="rounded-full gap-1 text-[11px] font-medium px-2 py-0.5 h-auto bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">
+                    <Badge className="rounded-md gap-1 text-[11px] font-medium px-2 py-0.5 h-auto bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">
                       <Quote className="h-3 w-3" />
-                      {paper.citedByCount.toLocaleString()} citations
+                     Cited By <span className='font-extrabold'> {paper.citedByCount.toLocaleString()} </span>
                     </Badge>
                   ) : null}
                 </div>
