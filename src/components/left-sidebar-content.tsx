@@ -1,20 +1,19 @@
-import { useState, useRef, useCallback } from 'react';
+'use client';
+
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
 } from '@/components/ui/sidebar';
 import Image from 'next/image';
 import { Button } from './ui/button';
-import { BookMarked, Check, Folder, HelpCircle, Library, LogOut, Moon, MoreHorizontal, Pencil, Plus, Settings, Star, Sun, Trash2, User, X } from 'lucide-react';
+import {
+  BookMarked, Check, ChevronUp, Folder, HelpCircle,
+  Library, LogOut, Moon, MoreHorizontal, Pencil, Plus,
+  Settings, Star, Sun, Trash2, User, X,
+} from 'lucide-react';
 import type { Collection } from '@/lib/types';
-import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import {
   DropdownMenu,
@@ -33,15 +32,63 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from './ui/popover';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-const HOVER_CLOSE_DELAY_MS = 150;
-
 export type SidebarView = 'all' | 'starred' | 'collection' | 'notebook';
 
+/* ── Single nav button ─────────────────────────────────────────────────── */
+function NavItem({
+  icon: Icon,
+  label,
+  isActive,
+  onClick,
+}: {
+  icon: React.ElementType;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'group/nav flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-150 outline-none',
+        'group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-2',
+        isActive
+          ? 'bg-primary/10 text-primary'
+          : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+      )}
+    >
+      <div
+        className={cn(
+          'flex size-7 shrink-0 items-center justify-center rounded-lg transition-colors',
+          isActive
+            ? 'bg-primary/20 text-primary'
+            : 'bg-sidebar-accent/80 text-sidebar-foreground/60 group-hover/nav:bg-sidebar-accent group-hover/nav:text-sidebar-foreground',
+        )}
+      >
+        <Icon className="size-[15px]" />
+      </div>
+      <span className="flex-1 text-left font-heading text-[0.8rem] font-semibold tracking-[0.01em] group-data-[collapsible=icon]:hidden">
+        {label}
+      </span>
+      {isActive && (
+        <span className="size-1.5 shrink-0 rounded-full bg-primary group-data-[collapsible=icon]:hidden" />
+      )}
+    </button>
+  );
+}
+
+/* ── Main component ─────────────────────────────────────────────────────── */
 export function LeftSidebarContent({
   collections,
   onCollectionCreate,
@@ -64,30 +111,17 @@ export function LeftSidebarContent({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const leaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const createInputRef = useRef<HTMLInputElement>(null);
   const { user } = useUser();
   const { signOut } = useClerk();
   const { resolvedTheme, setTheme } = useTheme();
 
-  const clearLeaveTimeout = useCallback(() => {
-    if (leaveTimeoutRef.current) {
-      clearTimeout(leaveTimeoutRef.current);
-      leaveTimeoutRef.current = null;
-    }
-  }, []);
-
-  const handleUserMenuEnter = useCallback(() => {
-    clearLeaveTimeout();
-    setUserMenuOpen(true);
-  }, [clearLeaveTimeout]);
-
-  const handleUserMenuLeave = useCallback(() => {
-    leaveTimeoutRef.current = setTimeout(() => setUserMenuOpen(false), HOVER_CLOSE_DELAY_MS);
-  }, []);
+  useEffect(() => {
+    if (isCreating) createInputRef.current?.focus();
+  }, [isCreating]);
 
   const handleCreate = async () => {
-    if (newCollectionName.trim() !== '') {
+    if (newCollectionName.trim()) {
       await onCollectionCreate(newCollectionName.trim());
       setNewCollectionName('');
       setIsCreating(false);
@@ -102,7 +136,7 @@ export function LeftSidebarContent({
   const commitRename = async () => {
     if (!editingId) return;
     const trimmed = editingName.trim();
-    if (trimmed && trimmed !== collections.find(c => c.id === editingId)?.name) {
+    if (trimmed && trimmed !== collections.find((c) => c.id === editingId)?.name) {
       await onCollectionRename(editingId, trimmed);
     }
     setEditingId(null);
@@ -116,128 +150,200 @@ export function LeftSidebarContent({
     setDeletingId(null);
   };
 
+  const email = user?.primaryEmailAddress?.emailAddress ?? '';
+  const displayName = user?.fullName || user?.username || 'Account';
+
   return (
     <>
-      <SidebarHeader>
-        <div className="flex items-center justify-center px-1 py-2">
+      {/* ── Logo ─────────────────────────────────────────────────────────── */}
+      <SidebarHeader className="px-4 pb-3 pt-4">
+        <div className="flex items-center group-data-[collapsible=icon]:justify-center">
           <Image
             src="/logo/logo-full.png"
             alt="Paply"
-            width={140}
-            height={40}
-            className="h-12 w-auto max-w-full shrink-0 rounded-lg object-contain object-left"
+            width={120}
+            height={36}
+            className="h-9 w-auto shrink-0 rounded-lg object-contain object-left group-data-[collapsible=icon]:hidden"
+            priority
+          />
+          <Image
+            src="/logo/icon-logo.png"
+            alt="Paply"
+            width={32}
+            height={32}
+            className="hidden h-8 w-auto shrink-0 rounded-lg object-contain group-data-[collapsible=icon]:block"
+            priority
           />
         </div>
       </SidebarHeader>
-      <SidebarContent className="p-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={activeView === 'all'}
-              tooltip="All Papers"
-              onClick={() => onNavigate('all')}
-            >
-              <Library />
-              <span className="font-heading">All Papers</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={activeView === 'starred'}
-              tooltip="Starred"
-              onClick={() => onNavigate('starred')}
-            >
-              <Star />
-              <span className="font-heading">Starred</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={activeView === 'notebook'}
-              tooltip="Notebook"
-              onClick={() => onNavigate('notebook')}
-            >
-              <BookMarked />
-              <span className="font-heading">Notebook</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
 
-        <SidebarGroup className="mt-4">
-          <SidebarGroupLabel className="flex items-center">
-            <span className="flex-1 font-heading">Collections</span>
-            <Button variant="ghost" size="icon" className="size-6" onClick={() => setIsCreating(!isCreating)}>
-              <Plus className="size-4" />
-            </Button>
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {isCreating && (
-                <div className="flex items-center gap-2 p-2">
-                  <Input
-                    type="text"
-                    placeholder="New collection..."
-                    value={newCollectionName}
-                    onChange={(e) => setNewCollectionName(e.target.value)}
-                    className="h-8"
-                  />
-                  <Button size="sm" onClick={handleCreate}>Create</Button>
-                </div>
-              )}
-              {collections.length === 0 && !isCreating && (
-                <p className="p-2 text-sm text-muted-foreground">No collections yet. Click the '+' to create one.</p>
-              )}
-              {collections.map(collection => (
-                <SidebarMenuItem key={collection.id}>
+      <SidebarContent className="flex flex-col gap-0 px-3 pb-2">
+        {/* ── Primary navigation ────────────────────────────────────────── */}
+        <nav className="flex flex-col gap-0.5 pb-3">
+          <NavItem
+            icon={Library}
+            label="All Papers"
+            isActive={activeView === 'all'}
+            onClick={() => onNavigate('all')}
+          />
+          <NavItem
+            icon={Star}
+            label="Starred"
+            isActive={activeView === 'starred'}
+            onClick={() => onNavigate('starred')}
+          />
+          <NavItem
+            icon={BookMarked}
+            label="Notebook"
+            isActive={activeView === 'notebook'}
+            onClick={() => onNavigate('notebook')}
+          />
+        </nav>
+
+        {/* ── Divider ───────────────────────────────────────────────────── */}
+        <div className="mx-1 mb-3 h-px bg-sidebar-border/60 group-data-[collapsible=icon]:hidden" />
+
+        {/* ── Collections ───────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-1 group-data-[collapsible=icon]:hidden">
+          {/* Section header */}
+          <div className="mb-0.5 flex items-center justify-between px-1">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+              Collections
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsCreating((v) => !v)}
+              className="flex size-5 items-center justify-center rounded-md text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              title="New collection"
+            >
+              <Plus className="size-3.5" />
+            </button>
+          </div>
+
+          {/* Inline create input */}
+          {isCreating && (
+            <div className="mb-1 flex items-center gap-1.5 rounded-xl bg-sidebar-accent/60 px-2.5 py-1.5">
+              <Folder className="size-3.5 shrink-0 text-sidebar-foreground/40" />
+              <input
+                ref={createInputRef}
+                type="text"
+                placeholder="Collection name…"
+                value={newCollectionName}
+                onChange={(e) => setNewCollectionName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); handleCreate(); }
+                  if (e.key === 'Escape') { setIsCreating(false); setNewCollectionName(''); }
+                }}
+                className="flex-1 bg-transparent text-xs text-sidebar-foreground outline-none placeholder:text-sidebar-foreground/30"
+              />
+              <button
+                type="button"
+                onClick={handleCreate}
+                disabled={!newCollectionName.trim()}
+                className="rounded-md p-0.5 text-sidebar-foreground/50 transition-colors hover:text-primary disabled:opacity-30"
+              >
+                <Check className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => { setIsCreating(false); setNewCollectionName(''); }}
+                className="rounded-md p-0.5 text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {collections.length === 0 && !isCreating && (
+            <button
+              type="button"
+              onClick={() => setIsCreating(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-sidebar-border/60 px-3 py-3 text-xs text-sidebar-foreground/30 transition-colors hover:border-primary/30 hover:text-primary/60"
+            >
+              <Plus className="size-3" />
+              New collection
+            </button>
+          )}
+
+          {/* Collection list */}
+          <div className="flex flex-col gap-0.5">
+            {collections.map((collection) => {
+              const isActive =
+                activeView === 'collection' && selectedCollectionId === collection.id;
+
+              return (
+                <div key={collection.id} className="group/item flex items-center gap-0.5">
                   {editingId === collection.id ? (
-                    /* ── Inline rename input ── */
-                    <div className="flex items-center gap-1 px-2 py-1">
-                      <Folder className="size-4 shrink-0 text-muted-foreground" />
+                    /* ── Inline rename ── */
+                    <div className="flex flex-1 items-center gap-1.5 rounded-xl bg-sidebar-accent/60 px-2.5 py-1.5">
+                      <Folder className="size-3.5 shrink-0 text-sidebar-foreground/40" />
                       <Input
                         autoFocus
                         value={editingName}
-                        onChange={e => setEditingName(e.target.value)}
-                        onKeyDown={e => {
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={(e) => {
                           if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
                           if (e.key === 'Escape') cancelEditing();
                         }}
                         onBlur={commitRename}
-                        className="h-7 flex-1 text-sm px-1 py-0 border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/40"
+                        className="h-auto flex-1 border-0 bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
                       />
-                      <button type="button" onClick={commitRename} className="text-muted-foreground hover:text-foreground p-0.5 rounded">
+                      <button type="button" onClick={commitRename} className="rounded-md p-0.5 text-sidebar-foreground/40 hover:text-primary">
                         <Check className="size-3.5" />
                       </button>
-                      <button type="button" onClick={cancelEditing} className="text-muted-foreground hover:text-foreground p-0.5 rounded">
+                      <button type="button" onClick={cancelEditing} className="rounded-md p-0.5 text-sidebar-foreground/40 hover:text-sidebar-foreground">
                         <X className="size-3.5" />
                       </button>
                     </div>
                   ) : (
-                    /* ── Normal row with hover actions ── */
-                    <div className="group/item flex items-center w-full rounded-md">
-                      <SidebarMenuButton
-                        tooltip={collection.name}
-                        isActive={activeView === 'collection' && selectedCollectionId === collection.id}
+                    <>
+                      {/* Collection button */}
+                      <button
+                        type="button"
                         onClick={() => onNavigate('collection', collection.id)}
-                        className="flex-1 min-w-0"
+                        className={cn(
+                          'flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-all duration-150 outline-none',
+                          isActive
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                        )}
                       >
-                        <Folder />
-                        <span className="flex-1 font-heading truncate">{collection.name}</span>
-                        <Badge variant="secondary" className="group-data-[collapsible=icon]:hidden shrink-0">
+                        <div
+                          className={cn(
+                            'flex size-5 shrink-0 items-center justify-center rounded-md transition-colors',
+                            isActive
+                              ? 'bg-primary/20 text-primary'
+                              : 'bg-sidebar-accent/80 text-sidebar-foreground/40',
+                          )}
+                        >
+                          <Folder className="size-3" />
+                        </div>
+                        <span className="flex-1 truncate text-left text-xs font-medium">
+                          {collection.name}
+                        </span>
+                        <span
+                          className={cn(
+                            'shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums',
+                            isActive
+                              ? 'bg-primary/20 text-primary'
+                              : 'bg-sidebar-accent text-sidebar-foreground/40',
+                          )}
+                        >
                           {collection.paperCount}
-                        </Badge>
-                      </SidebarMenuButton>
+                        </span>
+                      </button>
 
-                      {/* ··· dropdown — visible on hover */}
+                      {/* Options menu */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
                             type="button"
-                            onClick={e => e.stopPropagation()}
+                            onClick={(e) => e.stopPropagation()}
                             className={cn(
-                              'ml-0.5 shrink-0 rounded-md p-1 text-muted-foreground/50',
-                              'opacity-0 group-hover/item:opacity-100 transition-opacity',
-                              'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                              'group-data-[collapsible=icon]:hidden',
+                              'shrink-0 rounded-lg p-1 text-sidebar-foreground/30',
+                              'opacity-0 transition-opacity group-hover/item:opacity-100',
+                              'hover:bg-sidebar-accent hover:text-sidebar-foreground',
                             )}
                             aria-label="Collection options"
                           >
@@ -246,157 +352,177 @@ export function LeftSidebarContent({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent side="right" align="start" className="w-40">
                           <DropdownMenuItem onClick={() => startEditing(collection)}>
-                            <Pencil className="size-3.5 mr-2" />
+                            <Pencil className="mr-2 size-3.5" />
                             Rename
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            className="text-destructive focus:bg-destructive/10 focus:text-destructive"
                             onClick={() => setDeletingId(collection.id)}
                           >
-                            <Trash2 className="size-3.5 mr-2" />
+                            <Trash2 className="mr-2 size-3.5" />
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </div>
+                    </>
                   )}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </SidebarContent>
 
+      {/* ── User footer ──────────────────────────────────────────────────── */}
       {user && (
-        <SidebarFooter className="mt-auto border-t border-sidebar-border">
-          <div
-            className="relative"
-            onMouseEnter={handleUserMenuEnter}
-            onMouseLeave={handleUserMenuLeave}
-          >
-            <div
-              className={cn(
-                'flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none transition-[width,height,padding]',
-                'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                'group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:justify-center'
-              )}
-            >
-              {user.imageUrl ? (
-                <img
-                  src={user.imageUrl}
-                  alt=""
-                  className="size-8 shrink-0 rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <User className="size-4" />
-                </div>
-              )}
-              <span className="truncate text-sm group-data-[collapsible=icon]:hidden">
-                {user.primaryEmailAddress?.emailAddress ?? 'Account'}
-              </span>
-            </div>
-
-            {userMenuOpen && (
-              <div
-                className="absolute bottom-0 left-full z-50 ml-1 min-w-[220px] rounded-lg border bg-popover p-2 text-popover-foreground shadow-md"
-                onMouseEnter={handleUserMenuEnter}
-                onMouseLeave={handleUserMenuLeave}
+        <SidebarFooter className="border-t border-sidebar-border/60 px-3 py-3">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  'flex w-full items-center gap-2.5 rounded-xl p-2 text-left outline-none transition-colors',
+                  'hover:bg-sidebar-accent',
+                  'group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2',
+                )}
               >
-                <div className="flex items-center gap-3 px-2 py-2">
-                  {user.imageUrl ? (
-                    <img
-                      src={user.imageUrl}
-                      alt=""
-                      className="size-10 shrink-0 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                      <User className="size-5" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">
-                      {user.fullName || user.username || 'User'}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {user.primaryEmailAddress?.emailAddress ?? ''}
-                    </p>
+                {user.imageUrl ? (
+                  <img
+                    src={user.imageUrl}
+                    alt=""
+                    className="size-7 shrink-0 rounded-full object-cover ring-1 ring-sidebar-border"
+                  />
+                ) : (
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary ring-1 ring-sidebar-border">
+                    <User className="size-3.5" />
                   </div>
+                )}
+                <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+                  <p className="truncate text-xs font-semibold leading-tight text-sidebar-foreground">
+                    {displayName}
+                  </p>
+                  <p className="truncate text-[10px] leading-tight text-sidebar-foreground/40">
+                    {email}
+                  </p>
                 </div>
-                <div className="my-1 h-px bg-border" />
-                <div className="py-1">
-                  <Link
-                    href="/settings"
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <Settings className="size-4 shrink-0" />
-                    Settings
-                  </Link>
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                    onClick={() => {}}
-                  >
-                    <HelpCircle className="size-4 shrink-0" />
-                    Help
-                  </button>
-                  <div className="flex w-full flex-col gap-2 px-2 py-1">
-                    <span className="text-xs font-medium text-muted-foreground">Theme</span>
-                    <div className="flex rounded-lg border border-border bg-muted/50 p-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setTheme('light')}
-                        className={cn(
-                          'flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium transition-colors',
-                          resolvedTheme === 'light'
-                            ? 'bg-background text-foreground shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground'
-                        )}
-                      >
-                        <Sun className="size-3.5" />
-                        Light
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setTheme('dark')}
-                        className={cn(
-                          'flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium transition-colors',
-                          (resolvedTheme ?? 'dark') === 'dark'
-                            ? 'bg-background text-foreground shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground'
-                        )}
-                      >
-                        <Moon className="size-3.5" />
-                        Dark
-                      </button>
-                    </div>
+                <ChevronUp className="size-3.5 shrink-0 text-sidebar-foreground/30 group-data-[collapsible=icon]:hidden" />
+              </button>
+            </PopoverTrigger>
+
+            <PopoverContent
+              side="top"
+              align="start"
+              sideOffset={8}
+              className="w-64 p-0 shadow-lg"
+            >
+              {/* User info */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                {user.imageUrl ? (
+                  <img
+                    src={user.imageUrl}
+                    alt=""
+                    className="size-10 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
+                    <User className="size-5" />
                   </div>
-                  <div className="my-1 h-px bg-border" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{displayName}</p>
+                  <p className="truncate text-xs text-muted-foreground">{email}</p>
+                </div>
+              </div>
+
+              <div className="h-px bg-border" />
+
+              {/* Menu items */}
+              <div className="p-1.5">
+                <Link
+                  href="/settings"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                >
+                  <Settings className="size-4 shrink-0 text-muted-foreground" />
+                  Settings
+                </Link>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors hover:bg-accent"
+                >
+                  <HelpCircle className="size-4 shrink-0 text-muted-foreground" />
+                  Help &amp; Support
+                </button>
+              </div>
+
+              <div className="h-px bg-border" />
+
+              {/* Theme toggle */}
+              <div className="p-3">
+                <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                  Appearance
+                </p>
+                <div className="flex rounded-lg border border-border bg-muted/40 p-0.5">
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-red-500 hover:text-white"
-                    onClick={() => signOut({ redirectUrl: '/' })}
+                    onClick={() => setTheme('light')}
+                    className={cn(
+                      'flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs font-medium transition-all',
+                      resolvedTheme === 'light'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
                   >
-                    <LogOut className="size-4 shrink-0" />
-                    Log out
+                    <Sun className="size-3.5" />
+                    Light
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTheme('dark')}
+                    className={cn(
+                      'flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs font-medium transition-all',
+                      (resolvedTheme ?? 'dark') === 'dark'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    <Moon className="size-3.5" />
+                    Dark
                   </button>
                 </div>
               </div>
-            )}
-          </div>
+
+              <div className="h-px bg-border" />
+
+              {/* Sign out */}
+              <div className="p-1.5">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10"
+                  onClick={() => signOut({ redirectUrl: '/' })}
+                >
+                  <LogOut className="size-4 shrink-0" />
+                  Sign out
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </SidebarFooter>
       )}
 
-      {/* Delete confirmation dialog */}
-      <AlertDialog open={!!deletingId} onOpenChange={open => { if (!open) setDeletingId(null); }}>
+      {/* ── Delete collection dialog ──────────────────────────────────────── */}
+      <AlertDialog
+        open={!!deletingId}
+        onOpenChange={(open) => { if (!open) setDeletingId(null); }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete collection?</AlertDialogTitle>
             <AlertDialogDescription>
-              "{collections.find(c => c.id === deletingId)?.name}" will be permanently deleted.
-              Papers inside it will not be deleted.
+              <span className="font-medium text-foreground">
+                &ldquo;{collections.find((c) => c.id === deletingId)?.name}&rdquo;
+              </span>{' '}
+              will be permanently deleted. Papers inside it will not be removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

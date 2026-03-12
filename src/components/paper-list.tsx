@@ -351,7 +351,7 @@ export function PaperList({
                       </p>
                     )}
                     {paper.source && (
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground/70 italic line-clamp-1 text-green-500">
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground/70 italic line-clamp-1 text-blue-500 dark:text-green-500">
                         <BookOpen className="h-3 w-3 shrink-0 not-italic opacity-60" />
                         {paper.source}
                       </p>
